@@ -1,0 +1,17 @@
+[package]
+name = "cobalt"
+type = "staticlib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glad-gl = { path = "./external/glad-gl" }
+glfw = "0.52.0"
+hecs = "0.10.3"
+nalgebra-glm = "0.18.0"
+stb_image = "0.2.5"
+
+[build-dependencies]
+copy_to_output = "2.1.0"
