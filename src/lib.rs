@@ -1,15 +1,12 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
-// Internal crate mods
-//pub(crate) mod core;
-pub mod core;
+// Force dedicated graphics card
 
-// TODO: Change this to pub(crate) after testing
+// Internal crate mods
+pub(crate) mod core;
 
 // Exported mods
-use std::{cell::RefCell, rc::Rc};
-
 pub extern crate nalgebra_glm as maths;
 
 pub mod app;
@@ -20,4 +17,3 @@ pub mod transform;
 pub use transform::*;
 pub mod renderer;
 pub mod resources;
-
