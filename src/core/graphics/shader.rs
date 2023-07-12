@@ -17,6 +17,7 @@ pub struct ShaderComponent {
 
 impl Drop for ShaderComponent {
     fn drop(&mut self) {
+        println!("Dropping ShaderComponent: {}", self.id);
         unsafe {
             gl::DeleteShader(self.id);
         }
@@ -70,6 +71,7 @@ pub struct ShaderProgram {
 
 impl Drop for ShaderProgram {
     fn drop(&mut self) {
+        println!("Dropping ShaderProgram: {}", self.id);
         unsafe {
             gl::DeleteProgram(self.id);
         }

@@ -10,6 +10,37 @@ pub mod shader;
 pub mod texture;
 pub mod image;
 
+// macro for gl check error
+macro_rules! gl_check_error {
+    () => {
+        let error = unsafe { gl::GetError() };
+        if error != gl::NO_ERROR {
+            let code_location = std::panic::Location::caller();
+            let error_str: &str;
+            match error {
+                gl::INVALID_ENUM => error_str = "INVALID_ENUM",
+                gl::INVALID_VALUE => error_str = "INVALID_VALUE",
+                gl::INVALID_OPERATION => error_str = "INVALID_OPERATION",
+                gl::STACK_OVERFLOW => error_str = "STACK_OVERFLOW",
+                gl::STACK_UNDERFLOW => error_str = "STACK_UNDERFLOW",
+                gl::OUT_OF_MEMORY => error_str = "OUT_OF_MEMORY",
+                gl::INVALID_FRAMEBUFFER_OPERATION => error_str = "INVALID_FRAMEBUFFER_OPERATION",
+                gl::CONTEXT_LOST => error_str = "CONTEXT_LOST",
+                _ => error_str = "UNKNOWN_ERROR",
+            }
+
+            panic!(
+                "OpenGL error: {} at {}:{}",
+                error_str,
+                code_location.file(),
+                code_location.line()
+            );
+        }
+    };
+}
+
+pub(crate) use gl_check_error;
+
 pub struct GraphicsContext {
     pub glfw: glfw::Glfw,
     pub window: glfw::Window,

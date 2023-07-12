@@ -1,13 +1,16 @@
-use glad_gl::gl;
+use std::cell::RefMut;
 
 use crate::core::graphics::*;
+use crate::resources::Res;
+use glad_gl::gl;
 use nalgebra_glm as glm;
 
 // Exports
 pub use crate::core::graphics::image::Image;
+pub use crate::core::graphics::texture::Texture;
 
 pub struct Sprite {
-    texture: texture::Texture,
+    pub texture: Option<Res<texture::Texture>>,
     vao: buffer::VertexArray,
     vbo: buffer::VertexBuffer,
     ebo: buffer::IndexBuffer,
@@ -46,26 +49,12 @@ impl Sprite {
         ebo.unbind();
 
         Sprite {
-            texture: texture::Texture::new(),
+            texture: None,
             vao,
             vbo,
             ebo,
         }
     }
-
-    pub fn load_texture_from_image(&mut self, image: &Image) {
-        self.texture.set_image(image);
-    }
-
-    // pub fn load_from_file(&mut self, path: &str) {
-    //     let image = image::Image::from_file(path).expect("Failed to load image from file");
-    //     self.texture.set_image(image);
-    // }
-
-    // pub fn load_from_data(&mut self, data: Box<[u8]>, width: u32, height: u32, channels: u32) {
-    //     let image = image::Image::from_data(width, height, channels, data);
-    //     self.texture.set_image(image);
-    // }
 }
 
 pub struct Camera2D {
@@ -81,11 +70,10 @@ impl Camera2D {
 
     fn get_view_matrix(&self) -> glm::Mat4 {
         let mut view = glm::Mat4::identity();
-        view = glm::translate(&view, &glm::vec3(
-            -self.transform.position.x,
-            -self.transform.position.y,
-            0.0,
-        ));
+        view = glm::translate(
+            &view,
+            &glm::vec3(-self.transform.position.x, -self.transform.position.y, 0.0),
+        );
         view = glm::rotate(&view, self.transform.rotation, &glm::vec3(0.0, 0.0, 1.0));
         view
     }
@@ -99,11 +87,10 @@ impl Camera2D {
             -1.0,
             1.0,
         );
-        projection = glm::scale(&projection, &glm::vec3(
-            self.transform.scale.x,
-            self.transform.scale.y,
-            1.0,
-        ));
+        projection = glm::scale(
+            &projection,
+            &glm::vec3(self.transform.scale.x, self.transform.scale.y, 1.0),
+        );
         projection
     }
 }
@@ -146,6 +133,7 @@ macro_rules! load_shader {
 pub struct Renderer {
     pub camera: Camera2D,
     _sprite_shader: shader::ShaderProgram,
+    _iters: usize,
 }
 
 impl Renderer {
@@ -153,29 +141,35 @@ impl Renderer {
         Renderer {
             camera: Camera2D::new(),
             _sprite_shader: load_shader!("shaders/sprite.vert", "shaders/sprite.frag"),
+            _iters: 0,
         }
     }
 
-    pub fn render(&mut self, world: &crate::ecs::World) {
-        // clear the screen
-        unsafe {
-            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
+    pub fn render(
+        &mut self,
+        world: &crate::ecs::World,
+        resources: &crate::resources::ResourceManager,
+    ) {
+        self._iters += 1;
+
+        self._sprite_shader.use_program();
+        self._sprite_shader.set_uniform_1i("sprite_texture", 0);
+
+        gl_check_error!();
 
         for (_, (sprite, transform)) in world.query::<(&mut Sprite, &crate::Transform2D)>().iter() {
             // bind the texture
-            sprite.texture.texture_unit = 0;
-            sprite.texture.bind();
+            if sprite.texture.is_none() {
+                continue;
+            }
 
-            // set the shader uniforms
-            self._sprite_shader.use_program();
-            self._sprite_shader.set_uniform_1i("texture_", 0);
+            let texture = resources.get(&sprite.texture.unwrap()).unwrap();
+            texture.bind();
 
             // bind the vertex data
             sprite.vao.bind();
+            sprite.vbo.bind();
             sprite.ebo.bind();
-            sprite.vao.bind();
 
             // set the transform
             // let model = transform.get_model_matrix();
@@ -191,7 +185,10 @@ impl Renderer {
                     gl::UNSIGNED_INT,
                     std::ptr::null(),
                 );
-            }           
+            }
+
+            // check gl errors
+            gl_check_error!();
         }
     }
 }

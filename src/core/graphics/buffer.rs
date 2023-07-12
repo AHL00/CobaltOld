@@ -21,6 +21,7 @@ pub struct VertexBuffer {
 
 impl Drop for VertexBuffer {
     fn drop(&mut self) {
+        println!("Dropping VertexBuffer: {}", self.id);
         unsafe {
             gl::DeleteBuffers(1, &self.id);
         }
@@ -64,6 +65,15 @@ impl Buffer<f32> for VertexBuffer {
 pub struct IndexBuffer {
     pub id: u32,
     pub size: usize,
+}
+
+impl Drop for IndexBuffer {
+    fn drop(&mut self) {
+        println!("Dropping IndexBuffer: {}", self.id);
+        unsafe {
+            gl::DeleteBuffers(1, &self.id);
+        }
+    }
 }
 
 impl Buffer<u32> for IndexBuffer {
@@ -113,6 +123,7 @@ pub struct VertexArray {
 
 impl Drop for VertexArray {
     fn drop(&mut self) {
+        println!("Dropping VertexArray: {}", self.id);
         unsafe {
             gl::DeleteVertexArrays(1, &self.id);
         }
