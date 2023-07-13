@@ -9,7 +9,6 @@ pub enum ShaderType {
 }
 
 /// Shader component, can be added to a shader program.
-/// Destroyed when var is out of scope.
 pub struct ShaderComponent {
     pub id: u32,
     pub type_: ShaderType,
@@ -17,10 +16,10 @@ pub struct ShaderComponent {
 
 impl Drop for ShaderComponent {
     fn drop(&mut self) {
-        println!("Dropping ShaderComponent: {}", self.id);
         unsafe {
             gl::DeleteShader(self.id);
         }
+        log::trace!("Dropping ShaderComponent {}", self.id);
     }
 }
 
@@ -71,7 +70,7 @@ pub struct ShaderProgram {
 
 impl Drop for ShaderProgram {
     fn drop(&mut self) {
-        println!("Dropping ShaderProgram: {}", self.id);
+        log::trace!("Dropping ShaderProgram: {}", self.id);
         unsafe {
             gl::DeleteProgram(self.id);
         }

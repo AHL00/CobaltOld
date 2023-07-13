@@ -1,8 +1,6 @@
 use std::time::{Duration, Instant};
 use glad_gl::gl;
 
-pub mod logger;
-
 pub struct TestGlContext {
     pub glfw: glfw::Glfw,
     pub window: glfw::Window,

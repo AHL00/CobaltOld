@@ -1,4 +1,5 @@
 use std::cell::RefMut;
+use std::rc::Rc;
 
 use crate::core::graphics::*;
 use crate::resources::Res;
@@ -124,7 +125,7 @@ macro_rules! load_shader {
                 .split('.')
                 .next()
                 .unwrap();
-            println!("Compiled shader program: {}", name);
+            log::trace!("Compiled shader program: {}", name);
             shader_program
         }
     }};

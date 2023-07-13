@@ -8,11 +8,22 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.26"
+env_logger = "0.10.0"
 glad-gl = { path = "./external/glad-gl" }
 glfw = "0.52.0"
 hecs = "0.10.3"
+log = "0.4.19"
+log4rs = "1.2.0"
 nalgebra-glm = "0.18.0"
+serde_yaml = "0.9.22"
 stb_image = "0.2.5"
+
 
 [build-dependencies]
 copy_to_output = "2.1.0"
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "link-arg=/SUBSYSTEM:WINDOWS",
+    "-C", "link-arg=/ENTRY:mainCRTStartup",
+]

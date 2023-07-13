@@ -1,6 +1,6 @@
 use glad_gl::gl;
 use glfw::Context;
-use std::{rc::Rc, sync::mpsc::Receiver};
+use std::{rc::Rc, sync::mpsc::Receiver, ffi::CStr};
 
 // exports
 pub use glfw::CursorMode;
@@ -29,6 +29,12 @@ macro_rules! gl_check_error {
                 _ => error_str = "UNKNOWN_ERROR",
             }
 
+            log::error!(
+                "OpenGL error: {} at {}:{}",
+                error_str,
+                code_location.file(),
+                code_location.line()
+            );
             panic!(
                 "OpenGL error: {} at {}:{}",
                 error_str,
@@ -73,6 +79,19 @@ impl GraphicsContext {
         window.set_cursor_pos_polling(true);
         window.set_framebuffer_size_polling(true);
         window.set_mouse_button_polling(true);
+
+        // get context info
+        let renderer = unsafe { gl::GetString(gl::RENDERER) };
+        let version = unsafe { gl::GetString(gl::VERSION) };
+        let vendor = unsafe { gl::GetString(gl::VENDOR) };
+        let glsl_version = unsafe { gl::GetString(gl::SHADING_LANGUAGE_VERSION) };
+        unsafe {
+            log::info!("OpenGL Info:");
+            log::info!(">>  Renderer:     {}", std::str::from_utf8_unchecked(CStr::from_ptr(renderer as *const i8).to_bytes()));
+            log::info!(">>  Version:      {}", std::str::from_utf8_unchecked(CStr::from_ptr(version as *const i8).to_bytes()));
+            log::info!(">>  Vendor:       {}", std::str::from_utf8_unchecked(CStr::from_ptr(vendor as *const i8).to_bytes()));
+            log::info!(">>  GLSL Version: {}", std::str::from_utf8_unchecked(CStr::from_ptr(glsl_version as *const i8).to_bytes()));
+        }
 
         GraphicsContext {
             glfw: glfw,

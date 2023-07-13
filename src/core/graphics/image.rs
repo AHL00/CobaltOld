@@ -29,7 +29,7 @@ impl Image {
                 })
             }
             LoadResult::ImageF32(_image) => {
-                println!("ImageF32 not implemented");
+                log::error!("ImageF32 not implemented");
                 Err("ImageF32 not implemented".to_string())
             }
         }
@@ -49,9 +49,9 @@ impl Image {
         let mut file = std::fs::File::create(path).unwrap();
 
         if let Err(err) = write_bmp_file(self.width, self.height, self.data.as_ref(), path) {
-            println!("Failed to save image: {}", err);
+            log::error!("Failed to save image: {}", err);
         } else {
-            println!("Saved image to {}", path);
+            log::info!("Saved image to {}", path);
         }
     }
 }

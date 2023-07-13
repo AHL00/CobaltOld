@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::renderer;
-use crate::ecs;
-use crate::resources;
 use crate::core;
-
+use crate::ecs;
+use crate::renderer;
+use crate::resources;
 
 pub struct App {
     pub renderer: renderer::Renderer,
     pub ecs: ecs::World,
     pub fps_counter: core::utils::FpsCounter,
+
     resources: Rc<RefCell<resources::ResourceManager>>,
     graphics_context: core::graphics::GraphicsContext,
     _current_gameobject_id: u32,
@@ -18,9 +18,36 @@ pub struct App {
 
 impl App {
     pub fn new() -> App {
+        
+        // check if in debug mode
+        #[allow(unused_assignments)]
+        let mut log_lvl = "info".to_string();
+        #[cfg(debug_assertions)]
+        {
+            log_lvl = "debug".to_string();
+        }
+
+        // check if there is an env var for log level
+        if let Ok(lvl) = std::env::var("COBALT_LOG_LEVEL") {
+            log_lvl = lvl;
+        }
+        
+        let yaml_config = include_str!("./log_cfg.yaml");
+
+        // find "<level>", replace with log_lvl
+        let yaml_config = yaml_config.replace("<level>", &format!("{:?}", log_lvl));
+
+        // Initialize log4rs
+        let config = serde_yaml::from_str(yaml_config.as_str()).unwrap();
+        log4rs::init_raw_config(config).unwrap();
+        
+        // get crate version
+        let version = env!("CARGO_PKG_VERSION");
+        log::info!("Cobalt Engine v{}", version);
+        
         let graphics_context = core::graphics::GraphicsContext::new();
         let renderer = renderer::Renderer::new();
-        
+
         App {
             renderer,
             ecs: ecs::World::new(),
@@ -35,14 +62,15 @@ impl App {
         self.graphics_context.set_window_title("Cobalt Engine");
         self.graphics_context.set_window_size(1280, 720);
         self.graphics_context.set_clear_color(0.1, 0.1, 0.1, 1.0);
-        
+
         while !self.graphics_context.window.should_close() {
             self.fps_counter.tick();
             self.graphics_context.poll_events();
             self.graphics_context.clear();
 
             if self.fps_counter.is_refreshed() {
-                self.graphics_context.set_window_title(&format!("Cobalt Engine - FPS: {}", self.fps_counter.fps));
+                self.graphics_context
+                    .set_window_title(&format!("Cobalt Engine - FPS: {}", self.fps_counter.fps));
             }
 
             self.renderer.render(&self.ecs, &self.resources.borrow());
@@ -58,5 +86,4 @@ impl App {
     pub fn res_mut(&self) -> std::cell::RefMut<resources::ResourceManager> {
         self.resources.borrow_mut()
     }
-
 }

@@ -1,8 +1,5 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-
-// Force dedicated graphics card
-
 // Internal crate mods
 pub(crate) mod core;
 
