@@ -15,7 +15,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Install GLFW
-      run: sudo apt-get install libglfw3-dev
+    - name: Install GLFW dependencies
+      run: sudo apt-get install libglfw3-dev libxcursor-dev libxinerama-dev libxi-dev cmake
+    - name: Download submodules
+      run: git submodule update --init --recursive
     - name: Build
       run: cargo build --verbose
