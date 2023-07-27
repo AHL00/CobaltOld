@@ -18,29 +18,7 @@ pub struct App {
 
 impl App {
     pub fn new() -> App {
-        
-        // check if in debug mode
-        #[allow(unused_assignments)]
-        let mut log_lvl = "info".to_string();
-        #[cfg(debug_assertions)]
-        {
-            log_lvl = "debug".to_string();
-        }
 
-        // check if there is an env var for log level
-        if let Ok(lvl) = std::env::var("COBALT_LOG_LEVEL") {
-            log_lvl = lvl;
-        }
-        
-        let yaml_config = include_str!("./log_cfg.yaml");
-
-        // find "<level>", replace with log_lvl
-        let yaml_config = yaml_config.replace("<level>", &format!("{:?}", log_lvl));
-
-        // Initialize log4rs
-        let config = serde_yaml::from_str(yaml_config.as_str()).unwrap();
-        log4rs::init_raw_config(config).unwrap();
-        
         // get crate version
         let version = env!("CARGO_PKG_VERSION");
         log::info!("Cobalt Engine v{}", version);
