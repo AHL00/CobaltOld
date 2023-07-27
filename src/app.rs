@@ -12,7 +12,7 @@ pub struct App {
     pub fps_counter: core::utils::FpsCounter,
 
     resources: Rc<RefCell<resources::ResourceManager>>,
-    graphics_context: core::graphics::GraphicsContext,
+    pub graphics_context: core::graphics::GraphicsContext,
     _current_gameobject_id: u32,
 }
 

@@ -45,6 +45,8 @@ macro_rules! gl_check_error {
     };
 }
 
+pub use glfw::SwapInterval as SwapInterval;
+
 pub(crate) use gl_check_error;
 
 pub struct GraphicsContext {
@@ -138,6 +140,10 @@ impl GraphicsContext {
         self.glfw.with_connected_monitors(move |_, m| {
             callback(m);
         });
+    }
+
+    pub fn set_swap_interval(&mut self, interval: SwapInterval) {
+        self.glfw.set_swap_interval(interval);
     }
 
     pub fn set_fullscreen(

@@ -14,3 +14,7 @@ pub mod transform;
 pub use transform::*;
 pub mod renderer;
 pub mod resources;
+
+pub mod graphics {
+    pub use crate::core::graphics::SwapInterval;
+}

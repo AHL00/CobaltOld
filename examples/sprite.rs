@@ -22,18 +22,22 @@ fn main() {
     log4rs::init_raw_config(config).unwrap();
 
     let mut app = cobalt::App::new();
+
+    // disable vsync
+    app.graphics_context.set_swap_interval(cobalt::graphics::SwapInterval::None);
+
     let parent = app
         .ecs
-        .spawn((renderer::Sprite::new(), cobalt::Transform2D::new()));
+        .spawn((renderer::Sprite::new(), cobalt::Transform::new()));
     let child = app.ecs.spawn((
         renderer::Sprite::new(),
-        cobalt::Transform2D::new(),
+        cobalt::Transform::new(),
         ecs::Parent::new(parent),
     ));
 
     // iterate and fill transforms with random data
     let mut starting_offset = 0.0;
-    for (_, transform) in app.ecs.query::<&mut cobalt::Transform2D>().iter() {
+    for (_, transform) in app.ecs.query::<&mut cobalt::Transform>().iter() {
         starting_offset += 100.0;
         transform.translate(starting_offset, starting_offset);
     }

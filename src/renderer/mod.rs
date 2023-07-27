@@ -59,13 +59,13 @@ impl Sprite {
 }
 
 pub struct Camera2D {
-    pub transform: crate::Transform2D,
+    pub transform: crate::Transform,
 }
 
 impl Camera2D {
     pub fn new() -> Camera2D {
         Camera2D {
-            transform: crate::Transform2D::new(),
+            transform: crate::Transform::new(),
         }
     }
 
@@ -73,9 +73,17 @@ impl Camera2D {
         let mut view = glm::Mat4::identity();
         view = glm::translate(
             &view,
-            &glm::vec3(-self.transform.position.x, -self.transform.position.y, 0.0),
+            &glm::vec3(
+                -self.transform.get_position().x,
+                -self.transform.get_position().y,
+                0.0,
+            ),
         );
-        view = glm::rotate(&view, self.transform.rotation, &glm::vec3(0.0, 0.0, 1.0));
+        view = glm::rotate(
+            &view,
+            self.transform.get_rotation(),
+            &glm::vec3(0.0, 0.0, 1.0),
+        );
         view
     }
 
@@ -90,7 +98,11 @@ impl Camera2D {
         );
         projection = glm::scale(
             &projection,
-            &glm::vec3(self.transform.scale.x, self.transform.scale.y, 1.0),
+            &glm::vec3(
+                self.transform.get_scale().x,
+                self.transform.get_scale().y,
+                1.0,
+            ),
         );
         projection
     }
@@ -158,7 +170,7 @@ impl Renderer {
 
         gl_check_error!();
 
-        for (_, (sprite, transform)) in world.query::<(&mut Sprite, &crate::Transform2D)>().iter() {
+        for (_, (sprite, transform)) in world.query::<(&mut Sprite, &crate::Transform)>().iter() {
             // bind the texture
             if sprite.texture.is_none() {
                 continue;
@@ -174,9 +186,9 @@ impl Renderer {
 
             // set the transform
             // let model = transform.get_model_matrix();
-            // let view = self.camera.transform.get_view_matrix();
+            // let view = self.camera.get_view_matrix();
             // let projection = self.camera.transform.get_projection_matrix();
-            // let mvp = projection * view * model;
+            // let mvp = view * model;
 
             // skip transform and matrices for now
             unsafe {
