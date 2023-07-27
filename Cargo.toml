@@ -9,12 +9,12 @@ crate-type = ["lib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-glad-gl = { path = "./external/glad" }
 glfw = "0.52.0"
 hecs = "0.10.3"
 log = "0.4.19"
 nalgebra-glm = "0.18.0"
 stb_image = "0.2.5"
+wgpu = "0.17.0"
 
 [dev-dependencies]
 chrono = "0.4.26"

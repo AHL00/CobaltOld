@@ -1,6 +1,5 @@
 use cobalt::{
     ecs,
-    renderer::{self, Texture},
 };
 
 fn main() {
@@ -23,14 +22,10 @@ fn main() {
 
     let mut app = cobalt::App::new();
 
-    // disable vsync
-    app.graphics_context.set_swap_interval(cobalt::graphics::SwapInterval::None);
-
     let parent = app
         .ecs
-        .spawn((renderer::Sprite::new(), cobalt::Transform::new()));
+        .spawn((cobalt::Transform::new(), ));
     let child = app.ecs.spawn((
-        renderer::Sprite::new(),
         cobalt::Transform::new(),
         ecs::Parent::new(parent),
     ));
@@ -43,16 +38,5 @@ fn main() {
     }
 
     // fill the sprites with a texture
-    let logo = renderer::Image::from_file("examples/assets/wood.jpg")
-        .expect("Failed to load image from file");
-    let texture = renderer::Texture::new();
-    texture.set_image(&logo);
-
-    let texture = app.res_mut().add::<Texture>(texture);
-
-    for (_, sprite) in app.ecs.query::<&mut renderer::Sprite>().iter() {
-        sprite.texture = Some(texture);
-    }
-
     app.run();
 }
