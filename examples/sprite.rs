@@ -1,14 +1,12 @@
-use cobalt::{
-    ecs,
-};
+use cobalt::ecs;
 
 fn main() {
     // check if in debug mode
     #[allow(unused_assignments)]
-    let mut log_lvl = "info".to_string();
+    let log_lvl = "info".to_string();
     #[cfg(debug_assertions)]
     {
-        log_lvl = "debug".to_string();
+        //log_lvl = "debug".to_string();
     }
 
     let yaml_config = include_str!("./assets/log_cfg.yaml");
@@ -22,13 +20,10 @@ fn main() {
 
     let mut app = cobalt::App::new();
 
-    let parent = app
+    let parent = app.ecs.spawn((cobalt::Transform::new(),));
+    let _ = app
         .ecs
-        .spawn((cobalt::Transform::new(), ));
-    let child = app.ecs.spawn((
-        cobalt::Transform::new(),
-        ecs::Parent::new(parent),
-    ));
+        .spawn((cobalt::Transform::new(), ecs::Parent::new(parent)));
 
     // iterate and fill transforms with random data
     let mut starting_offset = 0.0;
@@ -37,6 +32,5 @@ fn main() {
         transform.translate(starting_offset, starting_offset);
     }
 
-    // fill the sprites with a texture
     app.run();
 }

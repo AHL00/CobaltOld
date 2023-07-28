@@ -1,26 +1,4 @@
 use std::time::{Duration, Instant};
-use glad_gl::gl;
-
-pub struct TestGlContext {
-    pub glfw: glfw::Glfw,
-    pub window: glfw::Window,
-}
-
-impl TestGlContext {
-    pub fn new() -> TestGlContext {
-        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-        glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-        glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-            glfw::OpenGlProfileHint::Core,
-        ));
-        // load gl function pointers
-        let (mut window, _) = glfw
-            .create_window(800, 600, "Test window", glfw::WindowMode::Windowed)
-            .expect("Failed to create GLFW window.");
-        gl::load(|e| window.get_proc_address(e) as *const std::os::raw::c_void);
-        TestGlContext { glfw, window }
-    }
-}
 
 pub struct FpsCounter {
     pub fps: f32,

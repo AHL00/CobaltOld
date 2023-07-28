@@ -1,67 +1,101 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::core;
 use crate::ecs;
-use crate::renderer;
 use crate::resources;
+use crate::renderer;
+
+use winit::{event::*, event_loop::ControlFlow};
 
 pub struct App {
-    //pub renderer: renderer::Renderer,
+    graphics: core::graphics::Graphics,
+    pub window: core::graphics::Window,
+    pub renderer: renderer::Renderer,
+
+    pub input: core::input::Input,
+
     pub ecs: ecs::World,
+    pub resources: resources::ResourceManager,
     pub fps_counter: core::utils::FpsCounter,
 
-    resources: Rc<RefCell<resources::ResourceManager>>,
-    //pub graphics_context: core::graphics::GraphicsContext,
     _current_gameobject_id: u32,
 }
 
 impl App {
     pub fn new() -> App {
-
         // get crate version
         let version = env!("CARGO_PKG_VERSION");
         log::info!("Cobalt Engine v{}", version);
-        
-        //let graphics_context = core::graphics::GraphicsContext::new();
-        //let renderer = renderer::Renderer::new();
+
+        let window = core::graphics::Window::new();
+        let graphics = core::graphics::Graphics::new(&window);
+        let renderer = renderer::Renderer::new();
+
+        let ecs = ecs::World::new();
+        let resources = resources::ResourceManager::new();
+        let fps_counter = core::utils::FpsCounter::new(2.5);
+
+        let input = core::input::Input::new();
 
         App {
-            //renderer,
-            ecs: ecs::World::new(),
-            fps_counter: core::utils::FpsCounter::new(2.5),
-            resources: Rc::new(RefCell::new(resources::ResourceManager::new())),
-            //graphics_context,
+            window,
+            graphics,
+            renderer,
+            input,
+            ecs,
+            resources,
+            fps_counter,
             _current_gameobject_id: 0,
         }
     }
 
-    pub fn run(&mut self) {
-        // self.graphics_context.set_window_title("Cobalt Engine");
-        // self.graphics_context.set_window_size(1280, 720);
-        // self.graphics_context.set_clear_color(0.1, 0.1, 0.1, 1.0);
+    pub fn run(mut self) {
+        self.window.event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Poll;
+            if self.fps_counter.is_refreshed() {
+                self.window.winit.set_title(&format!(
+                    "Cobalt Engine v{} - FPS: {}",
+                    env!("CARGO_PKG_VERSION"),
+                    self.fps_counter.fps
+                ));
+            }
 
-        // while !self.graphics_context.window.should_close() {
-        //     self.fps_counter.tick();
-        //     self.graphics_context.poll_events();
-        //     self.graphics_context.clear();
-
-        //     if self.fps_counter.is_refreshed() {
-        //         self.graphics_context
-        //             .set_window_title(&format!("Cobalt Engine - FPS: {}", self.fps_counter.fps));
-        //     }
-
-        //     self.renderer.render(&self.ecs, &self.resources.borrow());
-
-        //     self.graphics_context.swap_buffers();
-        // }
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(size) => {
+                        self.graphics.resize(size);
+                    },
+                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        self.graphics.resize(*new_inner_size);
+                    },
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        self.input.process_key_event(&input);
+                    },
+                    _ => (),
+                },
+                Event::MainEventsCleared => {
+                    self.window.winit.request_redraw();
+                },
+                Event::RedrawRequested(_) => {
+                    self.fps_counter.tick();
+                    match self.graphics.render() {
+                        Ok(_) => {}
+                        // Reconfigure the surface if lost
+                        Err(wgpu::SurfaceError::Lost) => self.graphics.resize(self.graphics.size),
+                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                        // All other errors (Outdated, Timeout) should be resolved by the next frame
+                        Err(e) => log::error!("{:?}", e),
+                    }
+                },
+                _ => (),
+            }
+        });
     }
 
-    pub fn res(&self) -> std::cell::Ref<resources::ResourceManager> {
-        self.resources.borrow()
+    pub fn window(&self) -> &core::graphics::Window {
+        &self.window
     }
 
-    pub fn res_mut(&self) -> std::cell::RefMut<resources::ResourceManager> {
-        self.resources.borrow_mut()
-    }
+    pub fn window_mut(&mut self) -> &mut core::graphics::Window {
+        &mut self.window
+    } 
 }

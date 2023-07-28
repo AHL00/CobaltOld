@@ -1,7 +1,4 @@
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-};
+use std::{any::Any, collections::HashMap};
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct Res<T> {
@@ -10,25 +7,39 @@ pub struct Res<T> {
 }
 
 pub struct ResourceManager {
-    hashmaps: HashMap<TypeId, HashMap<u32, Box<dyn Any>>>,
+    hashmap: HashMap<u32, Box<dyn Any>>,
     _current_id: u32,
 }
 
 impl ResourceManager {
     pub fn new() -> ResourceManager {
         ResourceManager {
-            hashmaps: HashMap::new(),
+            hashmap: HashMap::new(),
             _current_id: 0,
         }
     }
 
-    pub fn add<T: 'static>(&mut self, item: T) -> Res<T>
-    {
-        let type_id = TypeId::of::<T>();
-        let hashmap = self.hashmaps.entry(type_id).or_insert(HashMap::new());
+    /// Allocates a new resource and returns a handle to it. Not as efficient as
+    /// `create_from_boxed` but more ergonomic.
+    pub fn create<T: 'static>(&mut self, item: T) -> Res<T> {
         let id = self._current_id;
         self._current_id += 1;
-        hashmap.insert(id, Box::new(item));
+
+        self.hashmap.insert(id, Box::new(item));
+
+        Res {
+            id,
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    /// Adds a resource to the manager.
+    pub fn create_from_box<T: 'static>(&mut self, item: Box<T>) -> Res<T> {
+        let id = self._current_id;
+        self._current_id += 1;
+
+        self.hashmap.insert(id, item);
+
         Res {
             id,
             _marker: std::marker::PhantomData,
@@ -36,23 +47,31 @@ impl ResourceManager {
     }
 
     pub fn get<T: 'static>(&self, res: &Res<T>) -> Option<&T> {
-        let type_id = TypeId::of::<T>();
-        let hashmap = self.hashmaps.get(&type_id)?;
-        let item = hashmap.get(&res.id)?;
-        item.downcast_ref::<T>()
+        let item = self.hashmap.get(&res.id);
+        if item.is_none() {
+            return None;
+        }
+
+        item.unwrap().downcast_ref::<T>()
     }
 
     pub fn get_mut<T: 'static>(&mut self, res: &Res<T>) -> Option<&mut T> {
-        let type_id = TypeId::of::<T>();
-        let hashmap = self.hashmaps.get_mut(&type_id)?;
-        let item = hashmap.get_mut(&res.id)?;
-        item.downcast_mut::<T>()
+        let item = self.hashmap.get_mut(&res.id);
+        if item.is_none() {
+            return None;
+        }
+
+        item.unwrap().downcast_mut::<T>()
     }
 
-    pub fn remove<T: 'static>(&mut self, id: u32) -> Option<Box<T>> {
-        let type_id = TypeId::of::<T>();
-        let hashmap = self.hashmaps.get_mut(&type_id)?;
-        let item = hashmap.remove(&id)?;
-        item.downcast::<T>().ok()
+    pub fn remove<T: 'static>(&mut self, res: &Res<T>) -> Result<(), &str> {
+        let item = self.hashmap.remove(&res.id);
+        if item.is_none() {
+            return Err(ERR_RESOURCE_NOT_FOUND);
+        }
+
+        Ok(())
     }
 }
+
+const ERR_RESOURCE_NOT_FOUND: &str = "Resource not found";
