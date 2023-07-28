@@ -5,7 +5,7 @@
 
 This is mainly a learning project so it's not going to be the best engine, but it should be at least decent.
 
-[![Build](https://github.com/AHL00/Cobalt/workflows/Rust/badge.svg)](https://github.com/AHL00/Cobalt/actions/workflows/rust.yml)
+[![Build](https://github.com/AHL00/Cobalt/workflows/Build/badge.svg)](https://github.com/AHL00/Cobalt/actions/workflows/build.yml)
 [![Lines of code](https://tokei.rs/b1/github/AHL00/Cobalt?category=code)](https://github.com/AHL00/Cobalt)
 <br></br>
 ---
