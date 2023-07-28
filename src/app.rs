@@ -12,8 +12,7 @@ pub struct App {
 
     pub input: core::input::Input,
 
-    pub ecs: ecs::World,
-    pub resources: resources::ResourceManager,
+    pub ecs: ecs::Ecs,
     pub fps_counter: core::utils::FpsCounter,
 
     _current_gameobject_id: u32,
@@ -27,10 +26,9 @@ impl App {
 
         let window = core::graphics::Window::new();
         let graphics = core::graphics::Graphics::new(&window);
-        let renderer = renderer::Renderer::new();
+        let renderer = renderer::Renderer::new(&graphics);
 
-        let ecs = ecs::World::new();
-        let resources = resources::ResourceManager::new();
+        let ecs = ecs::Ecs::new();
         let fps_counter = core::utils::FpsCounter::new(2.5);
 
         let input = core::input::Input::new();
@@ -41,7 +39,6 @@ impl App {
             renderer,
             input,
             ecs,
-            resources,
             fps_counter,
             _current_gameobject_id: 0,
         }
@@ -77,8 +74,13 @@ impl App {
                 },
                 Event::RedrawRequested(_) => {
                     self.fps_counter.tick();
-                    match self.graphics.render() {
-                        Ok(_) => {}
+
+                    let mut frame = self.renderer.create_frame(&self.graphics).unwrap();
+                    
+                    match self.renderer.render(&mut frame, &self.ecs.world) {
+                        Ok(_) => {
+                            self.renderer.present_frame(&self.graphics, frame);
+                        }
                         // Reconfigure the surface if lost
                         Err(wgpu::SurfaceError::Lost) => self.graphics.resize(self.graphics.size),
                         Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,

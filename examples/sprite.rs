@@ -1,4 +1,4 @@
-use cobalt::ecs;
+use cobalt::{ecs, renderer::{primitives::Rect}};
 
 fn main() {
     // check if in debug mode
@@ -20,14 +20,14 @@ fn main() {
 
     let mut app = cobalt::App::new();
 
-    let parent = app.ecs.spawn((cobalt::Transform::new(),));
+    let parent = app.ecs.world.spawn((cobalt::Transform::new(),));
     let _ = app
-        .ecs
-        .spawn((cobalt::Transform::new(), ecs::Parent::new(parent)));
-
+        .ecs.
+        world.spawn((cobalt::Transform::new(), ecs::Parent::new(parent)));
+    
     // iterate and fill transforms with random data
     let mut starting_offset = 0.0;
-    for (_, transform) in app.ecs.query::<&mut cobalt::Transform>().iter() {
+    for (_, transform) in app.ecs.world.query::<&mut cobalt::Transform>().iter() {
         starting_offset += 100.0;
         transform.translate(starting_offset, starting_offset);
     }

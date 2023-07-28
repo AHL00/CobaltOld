@@ -13,4 +13,3 @@ pub use ecs::*;
 pub mod transform;
 pub use transform::*;
 pub mod renderer;
-pub mod resources;
