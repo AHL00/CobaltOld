@@ -10,75 +10,16 @@ use render_systems::register_render_systems;
 use self::render_systems::{RenderSystem, RenderSystemsManager};
 
 pub struct Renderer {
-    render_pipeline: wgpu::RenderPipeline,
     systems: RenderSystemsManager,
 }
 
 impl Renderer {
     pub(crate) fn new(graphics: &Graphics) -> Renderer {
-        let shader = graphics
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("Shader"),
-                source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
-            });
-
-        let render_pipeline_layout =
-            graphics
-                .device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Render Pipeline Layout"),
-                    bind_group_layouts: &[],
-                    push_constant_ranges: &[],
-                });
-
-        let render_pipeline =
-            graphics
-                .device
-                .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                    label: Some("Render Pipeline"),
-                    layout: Some(&render_pipeline_layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "vs_main",
-                        buffers: &[],
-                    },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "fs_main",
-                        targets: &[Some(wgpu::ColorTargetState {
-                            format: graphics.config.format,
-                            blend: Some(wgpu::BlendState::REPLACE),
-                            write_mask: wgpu::ColorWrites::ALL,
-                        })],
-                    }),
-                    primitive: wgpu::PrimitiveState {
-                        topology: wgpu::PrimitiveTopology::TriangleList,
-                        strip_index_format: None,
-                        front_face: wgpu::FrontFace::Ccw,
-                        cull_mode: Some(wgpu::Face::Back),
-                        // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
-                        polygon_mode: wgpu::PolygonMode::Fill,
-                        // Requires Features::DEPTH_CLIP_CONTROL
-                        unclipped_depth: false,
-                        // Requires Features::CONSERVATIVE_RASTERIZATION
-                        conservative: false,
-                    },
-                    depth_stencil: None,
-                    multisample: wgpu::MultisampleState {
-                        count: 1,
-                        mask: !0,
-                        alpha_to_coverage_enabled: false,
-                    },
-                    multiview: None,
-                });
-
         let mut systems = RenderSystemsManager::new();
 
-        register_render_systems(&mut systems);
+        register_render_systems(&mut systems, graphics);
 
         Renderer {
-            render_pipeline,
             systems,
         }
     }
@@ -113,10 +54,6 @@ impl Renderer {
             });
 
         self.systems.run_systems(ecs, &mut render_pass, &*self);
-
-        // render_pass.set_pipeline(&self.render_pipeline);
-
-        // render_pass.draw(0..3, 0..1);
 
         Ok(())
     }

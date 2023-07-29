@@ -1,12 +1,12 @@
-use crate::{ecs, Transform};
+use crate::{ecs, Transform, core::graphics::Graphics};
 
-use super::{primitives::Rect, Renderer};
+use super::{primitives::{Rect, rect_pipeline}, Renderer};
 
 pub struct RenderSystemsManager {
     systems: Vec<RenderSystem>,
 }
 
-impl RenderSystemsManager {
+impl<'a> RenderSystemsManager {
     pub(crate) fn new() -> RenderSystemsManager {
         RenderSystemsManager {
             systems: Vec::new(),
@@ -18,13 +18,14 @@ impl RenderSystemsManager {
     }
 
     pub(crate) fn run_systems(
-        &self,
+        &'a self,
         ecs: &mut ecs::Ecs,
-        render_pass: &mut wgpu::RenderPass<'_>,
+        render_pass: &mut wgpu::RenderPass<'a>,
         renderer: &Renderer,
     ) {
         for system in self.systems.iter() {
-            (system.run)(&mut ecs.world, &ecs.resources, render_pass, renderer);
+            render_pass.set_pipeline(&system.pipeline);
+            (system.run)(&mut ecs.world, &ecs.resources, renderer);
         }
     }
 }
@@ -36,19 +37,20 @@ pub struct RenderSystem {
         dyn Fn(
             &mut ecs::World,
             &ecs::resources::ResourceManager,
-            &mut wgpu::RenderPass<'_>,
             &Renderer,
         ),
     >,
+    pub pipeline: wgpu::RenderPipeline,
 }
 
 //////////////////////
 /// Render Systems ///
 //////////////////////
 
-pub(crate) fn register_render_systems(systems: &mut RenderSystemsManager) {
+pub(crate) fn register_render_systems(systems: &mut RenderSystemsManager, graphics: &Graphics) {
     systems.register_system(RenderSystem {
         name: "rect_system",
         run: Box::new(super::primitives::rect_system),
+        pipeline: rect_pipeline(graphics),
     });
 }

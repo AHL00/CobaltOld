@@ -25,6 +25,10 @@ impl Color {
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color { r, g, b, a }
     }
+
+    pub(crate) fn as_array(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
 }
 
 impl From<(f32, f32, f32, f32)> for Color {
