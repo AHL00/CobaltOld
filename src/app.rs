@@ -1,12 +1,43 @@
 use crate::core;
 use crate::ecs;
-use crate::resources;
 use crate::renderer;
 
+use winit::event;
+use winit::event_loop::EventLoop;
 use winit::{event::*, event_loop::ControlFlow};
 
+pub struct AppBuilder {
+    event_loop: EventLoop<()>,
+    app: App,
+    init: Option<Box<dyn FnOnce(&mut App) -> ()>>,
+}
+
+impl AppBuilder {
+    pub fn new() -> AppBuilder {
+        let event_loop = EventLoop::new();
+        let app = App::new(&event_loop);
+
+        AppBuilder { event_loop, app, init: None }
+    }
+
+    /// Accepts a closure that will be called once the app has started.
+    pub fn init(&mut self, on_start: impl FnOnce(&mut App) -> () + 'static) {
+        self.init = Some(Box::new(on_start));
+    }
+
+    pub fn run(self) {
+        let AppBuilder { event_loop, mut app, init: on_start } = self;
+
+        if let Some(on_start) = on_start {
+            on_start(&mut app);
+        }
+
+        app.run(event_loop);
+    }
+}
+
 pub struct App {
-    graphics: core::graphics::Graphics,
+    pub(crate) graphics: core::graphics::Graphics,
     pub window: core::graphics::Window,
     pub renderer: renderer::Renderer,
 
@@ -19,12 +50,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App {
+    fn new(event_loop: &EventLoop<()>) -> App {
         // get crate version
         let version = env!("CARGO_PKG_VERSION");
         log::info!("Cobalt Engine v{}", version);
 
-        let window = core::graphics::Window::new();
+        let window = core::graphics::Window::new(event_loop);
         let graphics = core::graphics::Graphics::new(&window);
         let renderer = renderer::Renderer::new(&graphics);
 
@@ -44,8 +75,8 @@ impl App {
         }
     }
 
-    pub fn run(mut self) {
-        self.window.event_loop.run(move |event, _, control_flow| {
+    pub fn run(mut self, event_loop: EventLoop<()>) {
+        event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             if self.fps_counter.is_refreshed() {
                 self.window.winit.set_title(&format!(
@@ -77,7 +108,7 @@ impl App {
 
                     let mut frame = self.renderer.create_frame(&self.graphics).unwrap();
                     
-                    match self.renderer.render(&mut frame, &self.ecs.world) {
+                    match self.renderer.render(&mut frame, &mut self.ecs) {
                         Ok(_) => {
                             self.renderer.present_frame(&self.graphics, frame);
                         }

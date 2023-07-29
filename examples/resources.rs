@@ -1,4 +1,4 @@
-use cobalt::resources::ResourceManager;
+use cobalt::ecs::resources::ResourceManager;
 
 fn main() {
     let mut res_manager = ResourceManager::new();

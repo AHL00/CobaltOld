@@ -9,7 +9,6 @@ pub extern crate nalgebra_glm as maths;
 pub mod app;
 pub use app::*;
 pub mod ecs;
-pub use ecs::*;
 pub mod transform;
 pub use transform::*;
 pub mod renderer;

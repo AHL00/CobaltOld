@@ -6,7 +6,7 @@ use self::resources::ResourceManager;
 pub struct Ecs {
     pub world: World,
     pub resources: ResourceManager,
-    systems: Vec<System>,
+    pub systems: SystemsManager,
     // TODO: add fixed systems, setting fixed update rate in the Ecs struct
 }
 
@@ -15,17 +15,7 @@ impl Ecs {
         Ecs {
             world: World::new(),
             resources: ResourceManager::new(),
-            systems: Vec::new(),
-        }
-    }
-
-    pub fn add_system(&mut self, system: System) {
-        self.systems.push(system);
-    }
-
-    pub fn run_systems(&mut self) {
-        for system in &mut self.systems {
-            (system.run)(&mut self.world);
+            systems: SystemsManager::new(),
         }
     }
 }
@@ -41,7 +31,29 @@ impl Parent {
     }
 }
 
-pub enum SystemType {
+pub struct SystemsManager {
+    systems: Vec<System>,
+}
+
+impl SystemsManager {
+    pub(crate) fn new() -> SystemsManager {
+        SystemsManager {
+            systems: Vec::new(),
+        }
+    }
+
+    pub fn register_system(&mut self, system: System) {
+        self.systems.push(system);
+    }
+
+    pub(crate) fn run_systems(&mut self, world: &mut World, resources: &mut ResourceManager) {
+        for system in 0..self.systems.len() {
+            (self.systems[system].run)(world, resources);
+        }
+    }
+}
+
+pub enum SystemRunType {
     /// Runs every frame
     Frame,
     /// Runs every fixed amount of time, set in the Ecs struct
@@ -50,7 +62,7 @@ pub enum SystemType {
 
 // Systems are functions that are executed every frame, or fixed amount of time
 pub struct System {
-    pub name: String,
-    pub run: Box<dyn FnMut(&mut World)>,
-    pub type_: SystemType,
+    pub name: &'static str,
+    pub run: Box<dyn FnMut(&mut World, &mut ResourceManager)>,
+    pub run_type: SystemRunType,
 }

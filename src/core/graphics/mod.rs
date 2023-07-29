@@ -1,23 +1,20 @@
 use pollster::FutureExt as _;
-use winit::{event_loop::EventLoop, window::WindowBuilder};
+use winit::{event_loop::{EventLoop, self}, window::WindowBuilder};
 
 pub struct Window {
     /// Underlying winit window.
     pub(crate) winit: winit::window::Window,
-    pub(crate) event_loop: EventLoop<()>,
 }
 
 impl Window {
-    pub(crate) fn new() -> Window {
-        let event_loop = EventLoop::new();
+    pub(crate) fn new(event_loop: &EventLoop<()>) -> Window {
         let window = WindowBuilder::new()
             .with_title("")
-            .build(&event_loop)
+            .build(event_loop)
             .unwrap();
 
         Window {
             winit: window,
-            event_loop,
         }
     }
 }

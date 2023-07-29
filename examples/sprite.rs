@@ -18,19 +18,22 @@ fn main() {
     let config = serde_yaml::from_str(yaml_config.as_str()).unwrap();
     log4rs::init_raw_config(config).unwrap();
 
-    let mut app = cobalt::App::new();
+    let mut builder = cobalt::AppBuilder::new();
 
-    let parent = app.ecs.world.spawn((cobalt::Transform::new(),));
-    let _ = app
-        .ecs.
-        world.spawn((cobalt::Transform::new(), ecs::Parent::new(parent)));
+    builder.init(|app| {
+        // create a new entity
+        let _ = app.ecs.world.spawn((cobalt::Transform::new(), Rect::new(app, 100.0, 100.0, (0.0, 0.0, 1.0, 1.0).into())));
+        
+    });
+
+    //let _ = builder.ecs.world.spawn((cobalt::Transform::new(), Rect::new(100.0, 100.0, (0.0, 0.0, 1.0, 1.0))));
     
-    // iterate and fill transforms with random data
-    let mut starting_offset = 0.0;
-    for (_, transform) in app.ecs.world.query::<&mut cobalt::Transform>().iter() {
-        starting_offset += 100.0;
-        transform.translate(starting_offset, starting_offset);
-    }
+    // // iterate and fill transforms with random data
+    // let mut starting_offset = 0.0;
+    // for (_, transform) in builder.ecs.world.query::<&mut cobalt::Transform>().iter() {
+    //     starting_offset += 100.0;
+    //     transform.translate(starting_offset, starting_offset);
+    // }
 
-    app.run();
+    builder.run();
 }
