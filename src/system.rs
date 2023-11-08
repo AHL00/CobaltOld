@@ -4,7 +4,7 @@ use crate::App;
 
 pub(crate) enum SystemType {
     Update,
-    Once,
+    Startup,
     Timed(Duration)
 }
 
@@ -19,23 +19,23 @@ pub struct System {
 }
 
 impl System {
-    pub fn once<T>(name: String, update: T) -> System 
-    where T: FnMut(&mut App, &Duration) + 'static
+    pub fn startup<T, S>(name: S, update: T) -> System 
+    where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
-            name,
+            name: name.into(),
             update: Box::new(update),
-            system_type: SystemType::Once,
+            system_type: SystemType::Startup,
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
         }
     }
 
-    pub fn timed<T>(name: String, update: T, duration: Duration) -> System 
-    where T: FnMut(&mut App, &Duration) + 'static
+    pub fn timed<T, S>(name: S, update: T, duration: Duration) -> System 
+    where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
-            name,
+            name: name.into(),
             update: Box::new(update),
             system_type: SystemType::Timed(duration),
             uuid: uuid::Uuid::new_v4(),
@@ -43,11 +43,11 @@ impl System {
         }
     }
 
-    pub fn update<T>(name: String, update: T) -> System 
-    where T: FnMut(&mut App, &Duration) + 'static
+    pub fn update<T, S>(name: S, update: T) -> System 
+    where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
-            name,
+            name: name.into(),
             update: Box::new(update),
             system_type: SystemType::Update,
             uuid: uuid::Uuid::new_v4(),

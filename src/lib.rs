@@ -4,11 +4,13 @@ use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
 pub mod graphics;
 pub mod system;
 pub mod input;
+pub mod resources;
 
 pub struct App {
     pub window: graphics::Window,
     pub renderer: graphics::Renderer,
     pub input: input::Input,
+    pub resources: resources::ResourceManager,
     pub perf_stats: PerformanceStatistics,
 }
 
@@ -44,9 +46,24 @@ impl AppBuilder {
 
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-        // Run the loop
-        let systems_ptr: *mut Vec<System> = &mut self.systems;
+        
+        // Run all the startup systems
+        for system in &mut self.systems {
+            if let system::SystemType::Startup = system.system_type {
+                (system.update)(&mut app, &system.last_run.elapsed());
+            }
+        }
 
+        // Remove all the startup systems
+        self.systems.retain(|s| {
+            if let system::SystemType::Startup = s.system_type {
+                false
+            } else {
+                true
+            }
+        });
+
+        // Run the loop
         event_loop.run(move |event, elwt| {
 
             match event {
@@ -83,12 +100,8 @@ impl AppBuilder {
             }
 
 
-            for system in unsafe { &mut *systems_ptr } {
+            for system in &mut self.systems {
                 match system.system_type {
-                    system::SystemType::Once => {
-                        (system.update)(&mut app, &system.last_run.elapsed());
-                        self.systems.retain(|s| s.uuid != system.uuid); 
-                    },
                     system::SystemType::Timed(duration) => {
                         if system.last_run.elapsed() >= duration {
                             (system.update)(&mut app, &system.last_run.elapsed());
@@ -98,7 +111,8 @@ impl AppBuilder {
                     system::SystemType::Update => {
                         (system.update)(&mut app, &system.last_run.elapsed());
                         system.last_run = std::time::Instant::now();
-                    }
+                    },
+                    _ => {},
                 }
             }
 
@@ -128,6 +142,7 @@ impl AppBuilder {
         self.app = Some(App {
             window,
             renderer: graphics::Renderer::new(),
+            resources: resources::ResourceManager::new(),
             input: input::Input::new(),
             perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });
