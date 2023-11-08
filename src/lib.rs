@@ -1,16 +1,19 @@
 use system::System;
 use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
 
-pub mod graphics;
+pub mod window;
 pub mod system;
 pub mod input;
 pub mod resources;
+pub mod renderer;
+pub mod assets;
 
 pub struct App {
-    pub window: graphics::Window,
-    pub renderer: graphics::Renderer,
+    pub window: window::Window,
+    pub renderer: renderer::Renderer,
     pub input: input::Input,
     pub resources: resources::ResourceManager,
+    pub assets: assets::AssetManager,
     pub perf_stats: PerformanceStatistics,
 }
 
@@ -132,7 +135,7 @@ impl AppBuilder {
         self.event_loop = Some(EventLoop::new()?);
 
         let window = if let Some(event_loop) = &self.event_loop {
-            graphics::Window::create(event_loop)?
+            window::Window::create(event_loop)?
         } else {
             return Err(anyhow::anyhow!("Event loop not initialized, could not create window."));
         };
@@ -141,8 +144,9 @@ impl AppBuilder {
         
         self.app = Some(App {
             window,
-            renderer: graphics::Renderer::new(),
+            renderer: renderer::Renderer::new(),
             resources: resources::ResourceManager::new(),
+            assets: assets::AssetManager::new(),
             input: input::Input::new(),
             perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });

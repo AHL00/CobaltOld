@@ -18,16 +18,22 @@ pub struct ResourceManager {
 
 impl ResourceManager {
     /// Creates a new resource manager.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             resources: AHashMap::new(),
         }
     }
 
     /// Creates a new resource of type `T` with the given value.
-    pub fn create_resource<T: 'static>(&mut self, value: T) {
+    pub fn create_resource<T: 'static>(&mut self, value: T) -> anyhow::Result<()> {
+        if self.get_resource::<T>().is_some() {
+            return Err(anyhow::anyhow!("Resource of type {} already exists.", std::any::type_name::<T>()));
+        }
+
         let type_id = TypeId::of::<T>();
         self.resources.insert(type_id, Box::new(Res { value, type_id }));
+
+        Ok(())
     }
 
     /// Returns a reference to the resource of type `T`.

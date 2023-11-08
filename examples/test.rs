@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder};
+use cobalt::{system::System, AppBuilder, assets::Asset};
 
 struct GameState {
     counter: u32,
+    asset: Asset<String>,
 }
 
 fn main() {    
@@ -30,10 +31,13 @@ fn main() {
     ));
 
     app.register_system(System::startup(
-        "Res test".to_string(),
+        "Res Asset test".to_string(),
         |app, delta| {
+            let asset = app.assets.create_asset("test".to_string()).expect("Failed to create asset.");
+            
             app.resources.create_resource(GameState {
                 counter: 0,
+                asset,
             });
         },
     ));
@@ -42,6 +46,13 @@ fn main() {
         let res = app.resources.get_resource_mut::<GameState>().unwrap();
         res.counter += 1;
         println!("Counter: {}", res.counter);
+
+        let test_str = res.asset.as_mut();
+
+        test_str.push_str("a");
+
+        println!("Asset: {}", test_str);
+
     }, Duration::from_millis(1000)));
 
     let res = app.run();
