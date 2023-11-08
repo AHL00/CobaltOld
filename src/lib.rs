@@ -1,5 +1,5 @@
 use system::System;
-use winit::{event_loop::EventLoop, event::Event};
+use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
 
 pub mod graphics;
 pub mod system;
@@ -7,8 +7,9 @@ pub mod input;
 
 pub struct App {
     pub window: graphics::Window,
-    // renderer: graphics::Renderer,
+    pub renderer: graphics::Renderer,
     pub input: input::Input,
+    pub perf_stats: PerformanceStatistics,
 }
 
 pub struct AppBuilder {
@@ -51,12 +52,25 @@ impl AppBuilder {
             match event {
                 Event::WindowEvent { event, .. } => {
                     match event {
-                        winit::event::WindowEvent::CloseRequested => {
+                        WindowEvent::CloseRequested => {
                             // app.renderer.destroy();
                             elwt.exit();
                         },
-                        winit::event::WindowEvent::RedrawRequested => {
+                        WindowEvent::RedrawRequested => {
                             // app.renderer.render();
+                        },
+                        WindowEvent::Resized(s) => {
+                            let res = app.window.resize(s);
+
+                            if let Err(e) = res {
+                                log::error!("Failed to resize window: {}", e);
+                            }
+                        },
+                        WindowEvent::ScaleFactorChanged { .. } => {
+                            let res = app.window.resize(app.window.winit_win.inner_size());
+                            if let Err(e) = res {
+                                log::error!("Failed to resize window: {}", e);
+                            }
                         },
                         _ => {}
                     }
@@ -87,6 +101,14 @@ impl AppBuilder {
                     }
                 }
             }
+
+            let res = app.renderer.render(&mut app.window);
+
+            if let Err(e) = res {
+                log::error!("Failed to render: {}", e);
+            }
+
+            app.perf_stats.tick();
         })?;
 
         Ok(())
@@ -105,7 +127,9 @@ impl AppBuilder {
         
         self.app = Some(App {
             window,
+            renderer: graphics::Renderer::new(),
             input: input::Input::new(),
+            perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });
 
         Ok(())
@@ -115,5 +139,36 @@ impl AppBuilder {
         if !self.systems.iter().any(|s| s.uuid == system.uuid) {
             self.systems.push(system);
         }
+    }
+}
+
+pub struct PerformanceStatistics {
+    pub fps: f64,
+    pub avg_frame_time: f64,
+    pub collection_duration: std::time::Duration,
+    frame_counter: u64,
+    last_collection: std::time::Instant,
+}
+
+impl PerformanceStatistics {
+    pub fn new(collection_duration: std::time::Duration) -> PerformanceStatistics {
+        PerformanceStatistics {
+            fps: 0.0,
+            avg_frame_time: 0.0,
+            collection_duration,
+            frame_counter: 0,
+            last_collection: std::time::Instant::now(),
+        }
+    }
+
+    pub fn tick(&mut self) {
+        if self.last_collection.elapsed() >= self.collection_duration {
+            self.fps = self.frame_counter as f64 / self.collection_duration.as_secs_f64();
+            self.avg_frame_time = 1.0 / self.fps;
+            self.frame_counter = 0;
+            self.last_collection = std::time::Instant::now();
+        }
+        
+        self.frame_counter += 1;
     }
 }

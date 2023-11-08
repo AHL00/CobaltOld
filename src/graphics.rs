@@ -1,11 +1,11 @@
 use winit::event_loop::EventLoop;
-use pollster::{block_on, FutureExt};
+use pollster::FutureExt;
 
 pub struct Window {
-    surface: wgpu::Surface,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
+    pub(crate) surface: wgpu::Surface,
+    pub(crate) device: wgpu::Device,
+    pub(crate) queue: wgpu::Queue,
+    pub(crate) config: wgpu::SurfaceConfiguration,
     pub winit_win: winit::window::Window,
 }
 
@@ -81,6 +81,58 @@ impl Window {
             winit_win 
         })
     }
+
+    pub(crate) fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) -> anyhow::Result<()> {
+        if size.width > 0 && size.height > 0 {
+            self.config.width = size.width;
+            self.config.height = size.height;
+            self.surface.configure(&self.device, &self.config);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Window size cannot be zero."))
+        }
+    }
 }
 
-pub struct Renderer {}
+pub struct Renderer {
+
+}
+
+impl Renderer {
+    pub fn new() -> Renderer {
+        Renderer {
+
+        }
+    }
+
+    pub fn render(&mut self, window: &mut Window) -> anyhow::Result<()> {
+        let output = window.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = window.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+        }
+
+        window.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
+    }
+}
