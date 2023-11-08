@@ -43,7 +43,7 @@ impl System {
         }
     }
 
-    pub fn new<T>(name: String, update: T) -> System 
+    pub fn update<T>(name: String, update: T) -> System 
     where T: FnMut(&mut App, &Duration) + 'static
     {
         System {

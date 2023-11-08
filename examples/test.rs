@@ -5,17 +5,15 @@ use cobalt::{system::System, App, AppBuilder};
 fn main() {
     let mut app = AppBuilder::new();
 
-    app.register_system(System::once("Graphics".to_string(), |app, delta| {
-        println!("Graphics system");
-    }));
-
     app.register_system(System::timed(
         "Physics".to_string(),
         |app, delta| {
-            println!("Physics system: delta: {:?}", delta);
+            
         },
-        Duration::from_millis(1500),
+        Duration::from_millis(10),
     ));
 
-    app.run();
+    let res = app.run();
+
+    println!("App quit with result: {:?}", res);
 }

@@ -1,16 +1,20 @@
 use system::System;
+use winit::{event_loop::EventLoop, event::Event};
 
 pub mod graphics;
 pub mod system;
+pub mod input;
 
 pub struct App {
-    
+    pub window: graphics::Window,
+    // renderer: graphics::Renderer,
+    pub input: input::Input,
 }
 
 pub struct AppBuilder {
     app: Option<App>,
     systems: Vec<System>,
-
+    event_loop: Option<EventLoop<()>>,
 }
 
 impl AppBuilder {
@@ -19,11 +23,12 @@ impl AppBuilder {
         AppBuilder {
             app: None,
             systems: Vec::new(),
+            event_loop: None,
         }
     }
   
-    pub fn run(mut self) {
-        self.build();
+    pub fn run(mut self) -> anyhow::Result<()> {
+        self.build()?;
 
         let mut app = self.app.unwrap();
 
@@ -32,10 +37,37 @@ impl AppBuilder {
             system.last_run = std::time::Instant::now();
         }
 
-        loop {
-            let systems_ptr: *mut Vec<System> = &mut self.systems;
-            for system in unsafe { &mut *systems_ptr } {
+        let event_loop = self.event_loop.unwrap();
 
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
+        // Run the loop
+        let systems_ptr: *mut Vec<System> = &mut self.systems;
+
+        event_loop.run(move |event, elwt| {
+
+            match event {
+                Event::WindowEvent { event, .. } => {
+                    match event {
+                        winit::event::WindowEvent::CloseRequested => {
+                            // app.renderer.destroy();
+                            elwt.exit();
+                        },
+                        winit::event::WindowEvent::RedrawRequested => {
+                            // app.renderer.render();
+                        },
+                        _ => {}
+                    }
+                    app.input.update(&event).expect("Failed to update input"); 
+                },
+                Event::AboutToWait => {
+                    app.window.winit_win.request_redraw();
+                },
+                _ => {}
+            }
+
+
+            for system in unsafe { &mut *systems_ptr } {
                 match system.system_type {
                     system::SystemType::Once => {
                         (system.update)(&mut app, &system.last_run.elapsed());
@@ -53,11 +85,26 @@ impl AppBuilder {
                     }
                 }
             }
-        }
+        })?;
+
+        Ok(())
     }
 
-    fn build(&mut self) {
-        self.app = Some(App {});
+    fn build(&mut self) -> anyhow::Result<()> {
+        self.event_loop = Some(EventLoop::new()?);
+
+        let window = if let Some(event_loop) = &self.event_loop {
+            graphics::Window::create(event_loop)?
+        } else {
+            return Err(anyhow::anyhow!("Event loop not initialized, could not create window."));
+        };
+        
+        self.app = Some(App {
+            window,
+            input: input::Input::new(),
+        });
+
+        Ok(())
     }
 
     pub fn register_system(&mut self, system: System) {
