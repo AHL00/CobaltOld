@@ -28,6 +28,8 @@ impl AppBuilder {
     }
   
     pub fn run(mut self) -> anyhow::Result<()> {
+        log::info!("Cobalt v{}", env!("CARGO_PKG_VERSION"));
+        log::info!("Starting...");
         self.build()?;
 
         let mut app = self.app.unwrap();
@@ -98,6 +100,8 @@ impl AppBuilder {
         } else {
             return Err(anyhow::anyhow!("Event loop not initialized, could not create window."));
         };
+
+        log::info!("Window created.");
         
         self.app = Some(App {
             window,
