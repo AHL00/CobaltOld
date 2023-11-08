@@ -10,13 +10,12 @@ crate-type = ["lib"]
 
 [dependencies]
 bytemuck = {version = "1.13.1", features = ["derive"]}
-hecs = "0.10.3"
 log = "0.4.19"
-nalgebra-glm = "0.18.0"
-pollster = "0.3.0"
 stb_image = "0.2.5"
-wgpu = "0.17.0"
-winit = "0.28.6"
+ultraviolet = {version = "0.9.2", features = ["serde", "mint", "f64", "bytemuck"]}
+uuid = {version="1.5.0", features = ["serde", "v4"]}
+wgpu = "0.18.0"
+winit = "0.29.3"
 
 [dev-dependencies]
 chrono = "0.4.26"
