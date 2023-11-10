@@ -1,17 +1,39 @@
+pub mod renderables;
+
+use ahash::AHashMap;
+
 use crate::window::Window;
 
-pub struct Renderer {
+use self::renderables::test_triangle::TestTriangle;
 
+pub trait Renderable<'a> {
+    // 
+
+    // Called after the pipeline generated at the start is set to the render_pass
+    // fn render(&mut self, window: &mut Window, encoder: &mut wgpu::CommandEncoder) -> anyhow::Result<()>;    
+    fn render(&'a mut self, window: &mut Window, render_pass: &mut wgpu::RenderPass<'a>) -> anyhow::Result<()>;
+
+
+    // Generate the render pipeline at the start, store in a hashmap with the type_id
+    // If the type_id doesn't exist in the hash, the renderer will call the get_pipeline function.
+    // When rendering next, get the pipeline from the hashmap 
+    fn type_id() -> std::any::TypeId;
+    fn get_pipeline() -> anyhow::Result<wgpu::RenderPipeline>;
+}
+
+pub struct Renderer {
+    pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
 }
 
 impl Renderer {
     pub fn new() -> Renderer {
         Renderer {
-
+            pipelines: AHashMap::new()
         }
     }
 
-    pub fn render(&mut self, window: &mut Window) -> anyhow::Result<()> {
+    pub fn render(&mut self, window: &mut Window, world: &mut hecs::World) -> anyhow::Result<()> {
+
         let output = window.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -20,7 +42,7 @@ impl Renderer {
         });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -34,6 +56,24 @@ impl Renderer {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+
+            // TODO: Make a macro that does this for a bunch of types automatically
+            let triangle_query = world.query_mut::<&mut TestTriangle>();
+
+            let type_id = TestTriangle::type_id();
+
+            if !self.pipelines.contains_key(&type_id) {
+                // Generate pipeline
+                let pipeline = TestTriangle::get_pipeline()?;
+
+                self.pipelines.extend_one((type_id, pipeline));
+            }
+            
+            render_pass.set_pipeline(self.pipelines.get(&type_id).unwrap());
+
+            for (i, renderable) in triangle_query {
+                renderable.render(window, &mut render_pass)?;
+            }
         }
 
         window.queue.submit(std::iter::once(encoder.finish()));

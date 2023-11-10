@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset};
+use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::test_triangle::TestTriangle};
 
 struct GameState {
     counter: u32,
@@ -38,21 +38,31 @@ fn main() {
             app.resources.create_resource(GameState {
                 counter: 0,
                 asset,
-            });
+            }).expect("Failed to create resource.");
+
+            app.world.spawn((1u32, "test".to_string()));
+            app.world.spawn((TestTriangle::new(), ));
         },
     ));
 
     app.register_system(System::timed("Res test", |app, delta| {
         let res = app.resources.get_resource_mut::<GameState>().unwrap();
         res.counter += 1;
-        println!("Counter: {}", res.counter);
 
-        let test_str = res.asset.as_mut();
+        // Create test asset
+        let ass = app.assets.create_asset("test".to_string()).expect("Failed to create asset.");
 
-        test_str.push_str("a");
+        let ass2 = ass.clone();
 
-        println!("Asset: {}", test_str);
+        res.asset = ass2;
 
+        println!("Asset: {}", *ass);
+
+        for (id, (i, string)) in app.world.query_mut::<(&mut u32, &String)>() {
+            *i += 1;
+
+            println!("Counter: {}, str: {}", i, string);
+        }
     }, Duration::from_millis(1000)));
 
     let res = app.run();

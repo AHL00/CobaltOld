@@ -1,4 +1,4 @@
-use std::{any::Any, ops::{Deref, DerefMut}};
+use std::{any::Any, ops::{Deref, DerefMut}, sync::mpsc::{Sender, Receiver}};
 
 use ahash::AHashMap;
 
@@ -7,7 +7,7 @@ use ahash::AHashMap;
 pub struct Asset<T> {
     // If this is true it will not increment or decrement the reference count
     id: usize,
-    asset_manager_ptr: *mut AssetManager,
+    drop_sender: Sender<usize>,
     data: *mut T,
 }
 
@@ -43,29 +43,17 @@ impl<T> DerefMut for Asset<T> {
 
 impl<T> Clone for Asset<T> {
     fn clone(&self) -> Self {
-        unsafe {
-            let asset_manager = &mut *self.asset_manager_ptr;
-            let asset = asset_manager.assets.get_mut(&self.id).unwrap();
-            asset.1 += 1;
-        }
         Asset {
             id: self.id,
-            asset_manager_ptr: self.asset_manager_ptr,
             data: self.data,
+            drop_sender: self.drop_sender.clone(),
         }
     }
 }
 
 impl<T> Drop for Asset<T> {
     fn drop(&mut self) {
-        unsafe {
-            let asset_manager = &mut *self.asset_manager_ptr;
-            let asset = asset_manager.assets.get_mut(&self.id).unwrap();
-            asset.1 -= 1;
-            if asset.1 == 0 {
-                asset_manager.assets.remove(&self.id);
-            }
-        }
+        self.drop_sender.send(self.id).unwrap();
     }
 }
 
@@ -74,13 +62,18 @@ impl<T> Drop for Asset<T> {
 pub struct AssetManager {
     assets: AHashMap<usize, (Box<dyn Any>, usize)>,
     current_id: usize,
+    drop_sender: Sender<usize>,
+    drop_receiver: Receiver<usize>,
 }
 
 impl AssetManager {
     pub(crate) fn new() -> AssetManager {
+        let (tx, rx) = std::sync::mpsc::channel();
         AssetManager {
             assets: AHashMap::new(),
             current_id: 0,
+            drop_sender: tx,
+            drop_receiver: rx,
         }
     }
 
@@ -92,7 +85,7 @@ impl AssetManager {
 
         Ok(Asset {
             id,
-            asset_manager_ptr: self as *mut AssetManager,
+            drop_sender: self.drop_sender.clone(),
             data: self
                 .assets
                 .get_mut(&id)
@@ -101,5 +94,16 @@ impl AssetManager {
                 .downcast_mut::<T>()
                 .unwrap(),
         })
+    }
+
+    pub fn drop_unused_assets(&mut self) {
+        while let Ok(id) = self.drop_receiver.try_recv() {
+            if let Some(asset) = self.assets.get_mut(&id) {
+                asset.1 -= 1;
+                if asset.1 == 0 {
+                    self.assets.remove(&id);
+                }
+            }
+        }
     }
 }

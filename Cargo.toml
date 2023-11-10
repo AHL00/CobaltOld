@@ -12,6 +12,7 @@ crate-type = ["lib"]
 ahash = "0.8.6"
 anyhow = "1.0.75"
 bytemuck = {version = "1.13.1", features = ["derive"]}
+hecs = "0.10.3"
 log = "0.4.19"
 pollster = "0.3.0"
 stb_image = "0.2.5"

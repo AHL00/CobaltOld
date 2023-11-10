@@ -1,3 +1,5 @@
+#![feature(extend_one)]
+
 use system::System;
 use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
 
@@ -14,6 +16,7 @@ pub struct App {
     pub input: input::Input,
     pub resources: resources::ResourceManager,
     pub assets: assets::AssetManager,
+    pub world: hecs::World,
     pub perf_stats: PerformanceStatistics,
 }
 
@@ -119,13 +122,14 @@ impl AppBuilder {
                 }
             }
 
-            let res = app.renderer.render(&mut app.window);
+            let res = app.renderer.render(&mut app.window, &mut app.world);
 
             if let Err(e) = res {
                 log::error!("Failed to render: {}", e);
             }
 
             app.perf_stats.tick();
+            app.assets.drop_unused_assets();
         })?;
 
         Ok(())
@@ -147,6 +151,7 @@ impl AppBuilder {
             renderer: renderer::Renderer::new(),
             resources: resources::ResourceManager::new(),
             assets: assets::AssetManager::new(),
+            world: hecs::World::new(),
             input: input::Input::new(),
             perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });
