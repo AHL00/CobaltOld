@@ -18,7 +18,7 @@ pub trait Renderable<'a> {
     // If the type_id doesn't exist in the hash, the renderer will call the get_pipeline function.
     // When rendering next, get the pipeline from the hashmap 
     fn type_id() -> std::any::TypeId;
-    fn get_pipeline() -> anyhow::Result<wgpu::RenderPipeline>;
+    fn create_pipeline(window: &mut Window) -> anyhow::Result<wgpu::RenderPipeline>;
 }
 
 pub struct Renderer {
@@ -64,7 +64,7 @@ impl Renderer {
 
             if !self.pipelines.contains_key(&type_id) {
                 // Generate pipeline
-                let pipeline = TestTriangle::get_pipeline()?;
+                let pipeline = TestTriangle::create_pipeline(window)?;
 
                 self.pipelines.extend_one((type_id, pipeline));
             }
