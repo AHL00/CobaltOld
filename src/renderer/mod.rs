@@ -4,7 +4,7 @@ use ahash::AHashMap;
 
 use crate::window::Window;
 
-use self::renderables::{quad::Quad, test_triangle::TestTriangle};
+use self::renderables::{quad::Quad, rect::Rect, test_triangle::TestTriangle};
 
 pub trait Renderable<'a> {
     // Called right before the render function
@@ -71,7 +71,8 @@ impl Renderer {
                 // Generate pipeline
                 let pipeline = TestTriangle::create_pipeline(window)?;
 
-                self.pipelines.extend_one((TestTriangle::type_id(), pipeline));
+                self.pipelines
+                    .extend_one((TestTriangle::type_id(), pipeline));
             }
 
             if !self.pipelines.contains_key(&Quad::type_id()) {
@@ -81,8 +82,19 @@ impl Renderer {
                 self.pipelines.extend_one((Quad::type_id(), pipeline));
             }
 
+            if !self
+                .pipelines
+                .contains_key(&renderables::rect::Rect::type_id())
+            {
+                // Generate pipeline
+                let pipeline = renderables::rect::Rect::create_pipeline(window)?;
+
+                self.pipelines
+                    .extend_one((renderables::rect::Rect::type_id(), pipeline));
+            }
+
             let world_raw_ptr = world as *mut hecs::World;
-            
+
             unsafe {
                 render_pass.set_pipeline(self.pipelines.get(&TestTriangle::type_id()).unwrap());
                 for (i, tri) in (&mut *world_raw_ptr).query_mut::<&mut TestTriangle>() {
@@ -93,18 +105,24 @@ impl Renderer {
                 for (i, quad) in (&mut *world_raw_ptr).query_mut::<&mut Quad>() {
                     quad.render(window, &mut render_pass)?;
                 }
+
+                render_pass.set_pipeline(self.pipelines.get(&Rect::type_id()).unwrap());
+                for (i, rect) in (&mut *world_raw_ptr).query_mut::<&mut Rect>() {
+                    rect.render(window, &mut render_pass)?;
+                }
             }
         } // Renderpass
-        
+
         window.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 
         Ok(())
     }
 
-    fn render_type<T> (&mut self, window: &mut Window, world: &mut hecs::World) -> anyhow::Result<()>
-    where T: Renderable<'static>
-     {
+    fn render_type<T>(&mut self, window: &mut Window, world: &mut hecs::World) -> anyhow::Result<()>
+    where
+        T: Renderable<'static>,
+    {
         let output = window.surface.get_current_texture()?;
         let view = output
             .texture
@@ -131,8 +149,6 @@ impl Renderer {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
-
-
         }
 
         Ok(())

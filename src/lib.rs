@@ -9,6 +9,7 @@ pub mod input;
 pub mod resources;
 pub mod renderer;
 pub mod assets;
+pub mod texture;
 
 pub struct App {
     pub window: window::Window,
@@ -129,7 +130,7 @@ impl AppBuilder {
             }
 
             app.perf_stats.tick();
-            app.assets.drop_unused_assets();
+            app.assets.update_ref_counts();
         })?;
 
         Ok(())

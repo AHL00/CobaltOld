@@ -1,10 +1,32 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::{test_triangle::TestTriangle, quad::Quad}};
+use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::{test_triangle::TestTriangle, quad::Quad, rect::Rect}, texture::Texture};
 
 struct GameState {
     counter: u32,
     asset: Asset<String>,
+}
+
+struct Pointer<T> {
+    pointer: *mut T,
+}
+
+impl<T> Pointer<T> {
+    fn new(t: &mut T) -> Self {
+        Self {
+            pointer: t as *mut T,
+        }
+    }
+
+    const fn null() -> Self {
+        Self {
+            pointer: std::ptr::null_mut(),
+        }
+    }
+
+    unsafe fn as_mut(&self) -> &mut T {
+        &mut *self.pointer
+    }
 }
 
 fn main() {    
@@ -41,8 +63,12 @@ fn main() {
             }).expect("Failed to create resource.");
 
             app.world.spawn((1u32, "test".to_string()));
-            // app.world.spawn((TestTriangle::new(), ));
-            app.world.spawn((Quad::new(&app), ));
+            app.world.spawn((TestTriangle::new(), ));
+            // app.world.spawn((Quad::new(&app), ));
+
+            let mut test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
+            
+            app.world.spawn((Rect::with_texture(&app, test_texture.clone()), ));
         },
     )); 
 

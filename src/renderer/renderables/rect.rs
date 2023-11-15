@@ -1,19 +1,11 @@
 use ultraviolet::Vec4;
 use wgpu::util::DeviceExt;
 
-use crate::{renderer::Renderable, window::Window, App};
+use crate::{assets::Asset, renderer::Renderable, texture::Texture, App, window::Window};
 
 use super::UvVertex;
 
-pub struct Quad {
-    pub color: Vec4,
-
-    pub(crate) vertex_buffer: wgpu::Buffer,
-    pub(crate) index_buffer: wgpu::Buffer,
-    pub(crate) num_indices: u32,
-}
-
-const QUAD_VERTICES: &[UvVertex] = &[
+const RECT_VERTICES: &[UvVertex] = &[
     UvVertex {
         position: [-0.5, 0.5, 0.0],
         uv: [0.0, 0.0],
@@ -28,20 +20,27 @@ const QUAD_VERTICES: &[UvVertex] = &[
     }, // C
     UvVertex {
         position: [0.5, 0.5, 0.0],
-        uv: [1.0, 0.0], 
+        uv: [1.0, 0.0],
     }, // D
 ];
 
-const QUAD_INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
+const RECT_INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-impl Quad {
-    pub fn new(app: &App) -> Self {
+pub struct Rect {
+    color: Vec4,
+    texture: Option<Asset<Texture>>,
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+}
+
+impl Rect {
+    pub fn new(app: &App, color: Vec4) -> Self {
         let vertex_buffer =
             app.window
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Quad UvVertex Buffer"),
-                    contents: bytemuck::cast_slice(&QUAD_VERTICES),
+                    label: Some("Quad Vertex Buffer"),
+                    contents: bytemuck::cast_slice(&RECT_VERTICES),
                     usage: wgpu::BufferUsages::VERTEX,
                 });
 
@@ -50,33 +49,65 @@ impl Quad {
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("Quad Index Buffer"),
-                    contents: bytemuck::cast_slice(&QUAD_INDICES),
+                    contents: bytemuck::cast_slice(&RECT_INDICES),
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
         Self {
-            color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+            color,
+            texture: None,
             vertex_buffer,
             index_buffer,
-            num_indices: QUAD_INDICES.len() as u32,
+        }
+    }
+
+    pub fn with_texture(app: &App, texture: Asset<Texture>) -> Self {
+        let vertex_buffer =
+            app.window
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Quad Vertex Buffer"),
+                    contents: bytemuck::cast_slice(&RECT_VERTICES),
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+
+        let index_buffer =
+            app.window
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Quad Index Buffer"),
+                    contents: bytemuck::cast_slice(&RECT_INDICES),
+                    usage: wgpu::BufferUsages::INDEX,
+                });
+
+        Self {
+            color: Vec4::one(),
+            texture: Some(texture),
+            vertex_buffer,
+            index_buffer,
         }
     }
 }
 
-impl<'a> Renderable<'a> for Quad {
-    fn update(&mut self, window: &mut Window) -> anyhow::Result<()> {
+impl<'a> Renderable<'a> for Rect {
+    fn update(&mut self, window: &mut crate::window::Window) -> anyhow::Result<()> {
         Ok(())
     }
 
     fn render(
         &'a self,
-        window: &mut Window,
+        window: &mut crate::window::Window,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> anyhow::Result<()> {
-        // Bind groups
+
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+
+        if let Some(texture) = &self.texture {
+            render_pass.set_bind_group(0, &texture.bind_group, &[]);
+        }
+
+        render_pass.draw_indexed(0..RECT_INDICES.len() as u32, 0, 0..1);
 
         Ok(())
     }
@@ -88,14 +119,16 @@ impl<'a> Renderable<'a> for Quad {
     fn create_pipeline(window: &mut Window) -> anyhow::Result<wgpu::RenderPipeline> {
         let shader = window
             .device
-            .create_shader_module(wgpu::include_wgsl!("shaders/quad.wgsl"));
+            .create_shader_module(wgpu::include_wgsl!("shaders/rect.wgsl"));
+
+        let texture_bind_group_layout = Texture::get_bind_group_layout(&window.device);
 
         let render_pipeline_layout =
             window
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Quad Render Pipeline Layout"),
-                    bind_group_layouts: &[],
+                    bind_group_layouts: &[&texture_bind_group_layout],
                     push_constant_ranges: &[],
                 });
 
@@ -108,7 +141,7 @@ impl<'a> Renderable<'a> for Quad {
                     vertex: wgpu::VertexState {
                         module: &shader,
                         entry_point: "vs_main",
-                        buffers: &[UvVertex::desc()], 
+                        buffers: &[UvVertex::desc()],
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,

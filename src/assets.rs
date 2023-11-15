@@ -7,9 +7,12 @@ use ahash::AHashMap;
 pub struct Asset<T> {
     // If this is true it will not increment or decrement the reference count
     id: usize,
-    drop_sender: Sender<usize>,
+    ref_count_sender: Sender<RefCountMessage>,
     data: *mut T,
 }
+
+unsafe impl<T> Send for Asset<T> {}
+unsafe impl<T> Sync for Asset<T> {}
 
 impl<T> Asset<T> {
     // fn clone_weak(&self) -> AssetWeak<T>
@@ -43,18 +46,25 @@ impl<T> DerefMut for Asset<T> {
 
 impl<T> Clone for Asset<T> {
     fn clone(&self) -> Self {
+        self.ref_count_sender.send(RefCountMessage::Clone(self.id)).unwrap();
+
         Asset {
             id: self.id,
             data: self.data,
-            drop_sender: self.drop_sender.clone(),
+            ref_count_sender: self.ref_count_sender.clone(),
         }
     }
 }
 
 impl<T> Drop for Asset<T> {
     fn drop(&mut self) {
-        self.drop_sender.send(self.id).unwrap();
+        self.ref_count_sender.send(RefCountMessage::Drop(self.id)).unwrap();
     }
+}
+
+enum RefCountMessage {
+    Drop(usize),
+    Clone(usize),
 }
 
 /// Asset manager that implements reference counting
@@ -62,18 +72,19 @@ impl<T> Drop for Asset<T> {
 pub struct AssetManager {
     assets: AHashMap<usize, (Box<dyn Any>, usize)>,
     current_id: usize,
-    drop_sender: Sender<usize>,
-    drop_receiver: Receiver<usize>,
+    ref_count_sender: Sender<RefCountMessage>,
+    ref_count_receiver: Receiver<RefCountMessage>,
 }
 
 impl AssetManager {
     pub(crate) fn new() -> AssetManager {
         let (tx, rx) = std::sync::mpsc::channel();
+        
         AssetManager {
             assets: AHashMap::new(),
             current_id: 0,
-            drop_sender: tx,
-            drop_receiver: rx,
+            ref_count_sender: tx,
+            ref_count_receiver: rx,
         }
     }
 
@@ -85,7 +96,7 @@ impl AssetManager {
 
         Ok(Asset {
             id,
-            drop_sender: self.drop_sender.clone(),
+            ref_count_sender: self.ref_count_sender.clone(),
             data: self
                 .assets
                 .get_mut(&id)
@@ -96,12 +107,21 @@ impl AssetManager {
         })
     }
 
-    pub fn drop_unused_assets(&mut self) {
-        while let Ok(id) = self.drop_receiver.try_recv() {
-            if let Some(asset) = self.assets.get_mut(&id) {
-                asset.1 -= 1;
-                if asset.1 == 0 {
-                    self.assets.remove(&id);
+    pub fn update_ref_counts(&mut self) {
+        while let Ok(msg) = self.ref_count_receiver.try_recv() {
+            match msg {
+                RefCountMessage::Drop(id) => {
+                    if let Some(asset) = self.assets.get_mut(&id) {
+                        asset.1 -= 1;
+                        if asset.1 == 0 {
+                            self.assets.remove(&id);
+                        }
+                    }
+                }
+                RefCountMessage::Clone(id) => {
+                    if let Some(asset) = self.assets.get_mut(&id) {
+                        asset.1 += 1;
+                    }
                 }
             }
         }

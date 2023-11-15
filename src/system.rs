@@ -19,36 +19,36 @@ pub struct System {
 }
 
 impl System {
-    pub fn startup<T, S>(name: S, update: T) -> System 
+    pub fn startup<T, S>(name: S, run: T) -> System 
     where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
             name: name.into(),
-            update: Box::new(update),
+            update: Box::new(run),
             system_type: SystemType::Startup,
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
         }
     }
 
-    pub fn timed<T, S>(name: S, update: T, duration: Duration) -> System 
+    pub fn timed<T, S>(name: S, run: T, duration: Duration) -> System 
     where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
             name: name.into(),
-            update: Box::new(update),
+            update: Box::new(run),
             system_type: SystemType::Timed(duration),
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
         }
     }
 
-    pub fn update<T, S>(name: S, update: T) -> System 
+    pub fn update<T, S>(name: S, run: T) -> System 
     where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
             name: name.into(),
-            update: Box::new(update),
+            update: Box::new(run),
             system_type: SystemType::Update,
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
