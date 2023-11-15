@@ -1,5 +1,3 @@
-pub mod test_triangle;
-pub mod quad;
 pub mod rect;
 
 #[repr(C)]

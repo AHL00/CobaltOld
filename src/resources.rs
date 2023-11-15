@@ -7,7 +7,6 @@ use ahash::AHashMap;
 pub struct Res<T>
 {
     value: T,
-    type_id: TypeId,
 }
 
 /// A resource manager is a collection of resources.
@@ -31,7 +30,7 @@ impl ResourceManager {
         }
 
         let type_id = TypeId::of::<T>();
-        self.resources.insert(type_id, Box::new(Res { value, type_id }));
+        self.resources.insert(type_id, Box::new(Res { value }));
 
         Ok(())
     }

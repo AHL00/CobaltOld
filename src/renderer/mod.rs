@@ -1,10 +1,11 @@
 pub mod renderables;
 
 use ahash::AHashMap;
+use ultraviolet::{Vec3, Rotor3};
 
-use crate::window::Window;
+use crate::{window::Window, camera::Camera, transform::Transform};
 
-use self::renderables::{quad::Quad, rect::Rect, test_triangle::TestTriangle};
+use self::renderables::rect::Rect;
 
 pub trait Renderable<'a> {
     // Called right before the render function
@@ -16,6 +17,7 @@ pub trait Renderable<'a> {
     fn render(
         &'a self,
         window: &mut Window,
+        camera: &'a Camera,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> anyhow::Result<()>;
 
@@ -37,7 +39,8 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, window: &mut Window, world: &mut hecs::World) -> anyhow::Result<()> {
+    /// Updates all renderables then renders them to one render pass
+    pub fn render(&mut self, window: &mut Window, camera: &Camera, world: &mut hecs::World) -> anyhow::Result<()> {
         let output = window.surface.get_current_texture()?;
         let view = output
             .texture
@@ -48,7 +51,6 @@ impl Renderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
-
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -66,49 +68,20 @@ impl Renderer {
             });
 
             // TODO: Make a macro that does this for a bunch of types automatically
-
-            if !self.pipelines.contains_key(&TestTriangle::type_id()) {
+            if !self.pipelines.contains_key(&Rect::type_id()) {
                 // Generate pipeline
-                let pipeline = TestTriangle::create_pipeline(window)?;
+                let pipeline = Rect::create_pipeline(window)?;
 
                 self.pipelines
-                    .extend_one((TestTriangle::type_id(), pipeline));
-            }
-
-            if !self.pipelines.contains_key(&Quad::type_id()) {
-                // Generate pipeline
-                let pipeline = Quad::create_pipeline(window)?;
-
-                self.pipelines.extend_one((Quad::type_id(), pipeline));
-            }
-
-            if !self
-                .pipelines
-                .contains_key(&renderables::rect::Rect::type_id())
-            {
-                // Generate pipeline
-                let pipeline = renderables::rect::Rect::create_pipeline(window)?;
-
-                self.pipelines
-                    .extend_one((renderables::rect::Rect::type_id(), pipeline));
+                    .extend_one((Rect::type_id(), pipeline));
             }
 
             let world_raw_ptr = world as *mut hecs::World;
 
             unsafe {
-                render_pass.set_pipeline(self.pipelines.get(&TestTriangle::type_id()).unwrap());
-                for (i, tri) in (&mut *world_raw_ptr).query_mut::<&mut TestTriangle>() {
-                    tri.render(window, &mut render_pass)?;
-                }
-
-                render_pass.set_pipeline(self.pipelines.get(&Quad::type_id()).unwrap());
-                for (i, quad) in (&mut *world_raw_ptr).query_mut::<&mut Quad>() {
-                    quad.render(window, &mut render_pass)?;
-                }
-
                 render_pass.set_pipeline(self.pipelines.get(&Rect::type_id()).unwrap());
                 for (i, rect) in (&mut *world_raw_ptr).query_mut::<&mut Rect>() {
-                    rect.render(window, &mut render_pass)?;
+                    rect.render(window, camera, &mut render_pass)?;
                 }
             }
         } // Renderpass

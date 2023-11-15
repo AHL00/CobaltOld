@@ -1,7 +1,11 @@
 #![feature(extend_one)]
 
+use camera::Camera;
 use system::System;
+use ultraviolet::{Vec3, Rotor3};
 use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
+
+use crate::transform::Transform;
 
 pub mod window;
 pub mod system;
@@ -10,9 +14,12 @@ pub mod resources;
 pub mod renderer;
 pub mod assets;
 pub mod texture;
+pub mod camera;
+pub mod transform;
 
 pub struct App {
     pub window: window::Window,
+    pub camera: camera::Camera,
     pub renderer: renderer::Renderer,
     pub input: input::Input,
     pub resources: resources::ResourceManager,
@@ -123,7 +130,11 @@ impl AppBuilder {
                 }
             }
 
-            let res = app.renderer.render(&mut app.window, &mut app.world);
+            // Update camera buffer
+            app.camera.update_uniform(&app.window);
+
+            // Render
+            let res = app.renderer.render(&mut app.window, &app.camera, &mut app.world);
 
             if let Err(e) = res {
                 log::error!("Failed to render: {}", e);
@@ -145,10 +156,24 @@ impl AppBuilder {
             return Err(anyhow::anyhow!("Event loop not initialized, could not create window."));
         };
 
+        let camera = Camera::new(
+            Transform::new(
+                Vec3::zero(),
+                Rotor3::from_euler_angles(0.0, 0.0, 0.0),
+                Vec3::one(),
+            ),
+            45.0,
+            1.0,
+            0.1,
+            100.0,
+            &window
+        );
+
         log::info!("Window created.");
         
         self.app = Some(App {
             window,
+            camera,
             renderer: renderer::Renderer::new(),
             resources: resources::ResourceManager::new(),
             assets: assets::AssetManager::new(),

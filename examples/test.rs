@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::{test_triangle::TestTriangle, quad::Quad, rect::Rect}, texture::Texture};
+use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::{rect::Rect}, texture::Texture};
 
 struct GameState {
     counter: u32,
@@ -39,9 +39,8 @@ fn main() {
     app.register_system(System::timed(
         "Physics".to_string(),
         |app, delta| {
-            
         },
-        Duration::from_millis(10),
+        Duration::from_millis(100),
     ));
 
     app.register_system(System::timed(
@@ -63,10 +62,8 @@ fn main() {
             }).expect("Failed to create resource.");
 
             app.world.spawn((1u32, "test".to_string()));
-            app.world.spawn((TestTriangle::new(), ));
-            // app.world.spawn((Quad::new(&app), ));
 
-            let mut test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
+            let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
             
             app.world.spawn((Rect::with_texture(&app, test_texture.clone()), ));
         },
