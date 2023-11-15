@@ -11,8 +11,12 @@ impl TestTriangle {
 }
 
 impl<'a> Renderable<'a> for TestTriangle {
+    fn update(&mut self, window: &mut Window) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn render(
-        &'a mut self,
+        &'a self,
         window: &mut Window,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> anyhow::Result<()> {
