@@ -12,7 +12,6 @@ pub struct Camera {
     pub(crate) bind_group: wgpu::BindGroup,
 }
 
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct CameraUniform {
@@ -79,7 +78,7 @@ impl Camera {
                 ],
             }
         );
-
+        
         Self {
             transform,
             fov,

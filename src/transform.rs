@@ -24,4 +24,16 @@ impl Transform {
             scale,
         }
     }
+
+    pub fn forward(&self) -> ultraviolet::Vec3 {
+        self.rotation * ultraviolet::Vec3::unit_z()
+    }
+
+    pub fn right(&self) -> ultraviolet::Vec3 {
+        self.rotation * ultraviolet::Vec3::unit_x()
+    }
+
+    pub fn up(&self) -> ultraviolet::Vec3 {
+        self.rotation * ultraviolet::Vec3::unit_y()
+    }
 }

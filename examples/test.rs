@@ -37,8 +37,47 @@ fn main() {
     let mut app = AppBuilder::new();
 
     app.register_system(System::timed(
-        "Physics".to_string(),
+        "Camera Move".to_string(),
         |app, delta| {
+            if app.input.is_key_down(cobalt::input::Key::KeyW) {
+                app.camera.transform.position += app.camera.transform.forward() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::KeyS) {
+                app.camera.transform.position -= app.camera.transform.forward() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::KeyA) {
+                app.camera.transform.position -= app.camera.transform.right() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::KeyD) {
+                app.camera.transform.position += app.camera.transform.right() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ShiftLeft) {
+                app.camera.transform.position -= app.camera.transform.up() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::Space) {
+                app.camera.transform.position += app.camera.transform.up() * 0.1;
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowRight) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xz(0.1);
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowLeft) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xz(-0.1);
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowUp) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_yz(0.1);
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowDown) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_yz(-0.1);
+            }
         },
         Duration::from_millis(100),
     ));

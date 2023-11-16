@@ -59,7 +59,6 @@ impl AppBuilder {
         let event_loop = self.event_loop.unwrap();
 
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-
         
         // Run all the startup systems
         for system in &mut self.systems {
@@ -158,7 +157,7 @@ impl AppBuilder {
 
         let camera = Camera::new(
             Transform::new(
-                Vec3::zero(),
+                Vec3::new(0.0, 0.0, -1.0),
                 Rotor3::from_euler_angles(0.0, 0.0, 0.0),
                 Vec3::one(),
             ),

@@ -1,3 +1,6 @@
+
+pub use winit::keyboard::KeyCode as Key;
+
 pub struct Input {
     pub(crate) keys: Vec<winit::keyboard::KeyCode>,
     pub(crate) mouse: winit::event::MouseButton,
