@@ -82,7 +82,8 @@ impl AppBuilder {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
-                            // app.renderer.destroy();
+                            // Cleanup
+
                             elwt.exit();
                         }
                         WindowEvent::RedrawRequested => {
@@ -163,8 +164,8 @@ impl AppBuilder {
                 Rotor3::from_euler_angles(0.0, 0.0, 0.0),
                 Vec3::one(),
             ),
-            45.0,
-            1.0,
+            70.0,
+            1.7778,
             0.1,
             100.0,
             &window,

@@ -41,7 +41,7 @@ impl Camera {
     /// Call after updating the camera's transform
     pub fn update_uniform(&mut self, window: &crate::window::Window) {
         let camera_uniform = CameraUniform {
-            view_proj: self.transform.view_matrix() * ultraviolet::projection::perspective_wgpu_dx(self.fov, self.aspect, self.near, self.far),
+            view_proj: ultraviolet::projection::perspective_wgpu_dx(self.fov.to_radians(), self.aspect, 0.0, self.far),
         };
 
         window.queue.write_buffer(
@@ -51,9 +51,18 @@ impl Camera {
         );
     }
 
+    fn view_matrix(&self) -> ultraviolet::Mat4 {
+        ultraviolet::Mat4::look_at(
+            self.transform.position,
+            self.transform.position + self.transform.forward(),
+            self.transform.up(),
+        )
+    }
+
     pub fn new(transform: Transform, fov: f32, aspect: f32, near: f32, far: f32, window: &crate::window::Window) -> Self {
         let camera_uniform = CameraUniform {
-            view_proj: transform.view_matrix() * ultraviolet::projection::perspective_wgpu_dx(fov, aspect, near, far),
+            // Start with an identity matrix
+            view_proj: ultraviolet::Mat4::identity(),
         };
 
         let uniform_buffer = window.device.create_buffer_init(

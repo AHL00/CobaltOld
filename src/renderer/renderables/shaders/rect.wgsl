@@ -31,8 +31,12 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
 
-    // out.clip_position = camera.view_proj * vec4<f32>(in.position, 1.0);
-    out.clip_position = vec4<f32>(in.position, 1.0);
+    out.clip_position = camera.view_proj * vec4<f32>(in.position, 1.0);
+
+    // Temporary workaround for
+    // w being zero for some reason
+    out.clip_position.w = 1.0;
+    
     out.uv = in.uv;
 
     return out;

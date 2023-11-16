@@ -8,13 +8,11 @@ pub struct Transform {
 }
 
 impl Transform {
+
     // TODO: Make more efficient by cacheing the result
-    pub(crate) fn view_matrix(&self) -> ultraviolet::Mat4 {
-        ultraviolet::Mat4::look_at(
-            self.position,
-            self.position + self.rotation * ultraviolet::Vec3::unit_z(),
-            self.rotation * ultraviolet::Vec3::unit_y(),
-        )
+    pub(crate) fn model_matrix(&self) -> ultraviolet::Mat4 {
+        unimplemented!("Transform::model_matrix()");
+        // ultraviolet::Mat4::from_translation(self.position) * ultraviolet::Mat4::from_rotation(self.rotation) * ultraviolet::Mat4::from_scale(self.scale)
     }
 
     pub fn new(position: ultraviolet::Vec3, rotation: ultraviolet::Rotor3, scale: ultraviolet::Vec3) -> Self {
