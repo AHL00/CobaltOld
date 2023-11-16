@@ -1,19 +1,22 @@
 use camera::Camera;
 use system::System;
-use ultraviolet::{Vec3, Rotor3};
-use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
+use ultraviolet::{Rotor3, Vec3};
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::EventLoop,
+};
 
 use crate::transform::Transform;
 
-pub mod window;
-pub mod system;
-pub mod input;
-pub mod resources;
-pub mod renderer;
 pub mod assets;
-pub mod texture;
 pub mod camera;
+pub mod input;
+pub mod renderer;
+pub mod resources;
+pub mod system;
+pub mod texture;
 pub mod transform;
+pub mod window;
 
 pub struct App {
     pub window: window::Window,
@@ -33,7 +36,6 @@ pub struct AppBuilder {
 }
 
 impl AppBuilder {
-
     pub fn new() -> AppBuilder {
         AppBuilder {
             app: None,
@@ -41,7 +43,7 @@ impl AppBuilder {
             event_loop: None,
         }
     }
-  
+
     pub fn run(mut self) -> anyhow::Result<()> {
         log::info!("Cobalt v{}", env!("CARGO_PKG_VERSION"));
         log::info!("Starting...");
@@ -57,7 +59,7 @@ impl AppBuilder {
         let event_loop = self.event_loop.unwrap();
 
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-        
+
         // Run all the startup systems
         for system in &mut self.systems {
             if let system::SystemType::Startup = system.system_type {
@@ -76,69 +78,69 @@ impl AppBuilder {
 
         // Run the loop
         event_loop.run(move |event, elwt| {
-
             match event {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
                             // app.renderer.destroy();
                             elwt.exit();
-                        },
+                        }
                         WindowEvent::RedrawRequested => {
-                            // app.renderer.render();
-                        },
+                            // Update and run systems
+                            for system in &mut self.systems {
+                                match system.system_type {
+                                    system::SystemType::Timed(duration) => {
+                                        if system.last_run.elapsed() >= duration {
+                                            (system.update)(&mut app, &system.last_run.elapsed());
+                                            system.last_run = std::time::Instant::now();
+                                        }
+                                    }
+                                    system::SystemType::Update => {
+                                        (system.update)(&mut app, &system.last_run.elapsed());
+                                        system.last_run = std::time::Instant::now();
+                                    }
+                                    _ => {}
+                                }
+                            }
+
+                            app.assets.update_ref_counts();
+
+                            // Update camera buffer
+                            app.camera.update_uniform(&app.window);
+
+                            // Render
+                            let res =
+                                app.renderer
+                                    .render(&mut app.window, &app.camera, &mut app.world);
+
+                            if let Err(e) = res {
+                                log::error!("Failed to render: {}", e);
+                            }
+
+                            app.perf_stats.tick();
+                        }
                         WindowEvent::Resized(s) => {
                             let res = app.window.resize(s);
 
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
-                        },
+                        }
                         WindowEvent::ScaleFactorChanged { .. } => {
                             let res = app.window.resize(app.window.winit_win.inner_size());
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
-                        },
+                        }
                         _ => {}
                     }
-                    app.input.update(&event).expect("Failed to update input"); 
-                },
+                    app.input.update(&event).expect("Failed to update input");
+                }
                 Event::AboutToWait => {
                     app.window.winit_win.request_redraw();
-                },
+                }
                 _ => {}
             }
-
-
-            for system in &mut self.systems {
-                match system.system_type {
-                    system::SystemType::Timed(duration) => {
-                        if system.last_run.elapsed() >= duration {
-                            (system.update)(&mut app, &system.last_run.elapsed());
-                            system.last_run = std::time::Instant::now();
-                        }
-                    },
-                    system::SystemType::Update => {
-                        (system.update)(&mut app, &system.last_run.elapsed());
-                        system.last_run = std::time::Instant::now();
-                    },
-                    _ => {},
-                }
-            }
-
-            // Update camera buffer
-            app.camera.update_uniform(&app.window);
-
-            // Render
-            let res = app.renderer.render(&mut app.window, &app.camera, &mut app.world);
-
-            if let Err(e) = res {
-                log::error!("Failed to render: {}", e);
-            }
-
-            app.perf_stats.tick();
-            app.assets.update_ref_counts();
         })?;
 
         Ok(())
@@ -150,7 +152,9 @@ impl AppBuilder {
         let window = if let Some(event_loop) = &self.event_loop {
             window::Window::create(event_loop)?
         } else {
-            return Err(anyhow::anyhow!("Event loop not initialized, could not create window."));
+            return Err(anyhow::anyhow!(
+                "Event loop not initialized, could not create window."
+            ));
         };
 
         let camera = Camera::new(
@@ -163,11 +167,11 @@ impl AppBuilder {
             1.0,
             0.1,
             100.0,
-            &window
+            &window,
         );
 
         log::info!("Window created.");
-        
+
         self.app = Some(App {
             window,
             camera,
@@ -215,7 +219,7 @@ impl PerformanceStatistics {
             self.frame_counter = 0;
             self.last_collection = std::time::Instant::now();
         }
-        
+
         self.frame_counter += 1;
     }
 }
