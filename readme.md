@@ -13,13 +13,14 @@ This is mainly a learning project so it's not going to be the best engine, but i
 ### Features
 
 - [ ] 2D Rendering
-  - [X] Basic sprite rendering
+  - [ ] Basic sprite rendering
   - [ ] Sprite batching
   - [ ] Particle system
   - [ ] Primitives
 - [ ] GUI Editor
 - [ ] Physics
 - [ ] Audio
+- [X] Assets/Resources
 - [X] ECS
 
 ### Goals
@@ -27,7 +28,3 @@ This is mainly a learning project so it's not going to be the best engine, but i
 - Performant
 - Modular
 - Easy to use
-
-### Plans
-
-- Use this as a base for a better 3D engine

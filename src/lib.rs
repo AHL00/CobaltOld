@@ -1,5 +1,3 @@
-#![feature(extend_one)]
-
 use camera::Camera;
 use system::System;
 use ultraviolet::{Vec3, Rotor3};

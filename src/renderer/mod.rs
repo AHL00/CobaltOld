@@ -1,9 +1,8 @@
 pub mod renderables;
 
 use ahash::AHashMap;
-use ultraviolet::{Vec3, Rotor3};
 
-use crate::{window::Window, camera::Camera, transform::Transform};
+use crate::{window::Window, camera::Camera};
 
 use self::renderables::rect::Rect;
 
@@ -73,7 +72,7 @@ impl Renderer {
                 let pipeline = Rect::create_pipeline(window)?;
 
                 self.pipelines
-                    .extend_one((Rect::type_id(), pipeline));
+                    .extend(std::iter::once((Rect::type_id(), pipeline)));
             }
 
             let world_raw_ptr = world as *mut hecs::World;
@@ -88,41 +87,6 @@ impl Renderer {
 
         window.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-
-        Ok(())
-    }
-
-    fn render_type<T>(&mut self, window: &mut Window, world: &mut hecs::World) -> anyhow::Result<()>
-    where
-        T: Renderable<'static>,
-    {
-        let output = window.surface.get_current_texture()?;
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = window
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
-
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
-        }
 
         Ok(())
     }

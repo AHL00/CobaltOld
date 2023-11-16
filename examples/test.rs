@@ -7,27 +7,27 @@ struct GameState {
     asset: Asset<String>,
 }
 
-struct Pointer<T> {
-    pointer: *mut T,
-}
+// struct Pointer<T> {
+//     pointer: *mut T,
+// }
 
-impl<T> Pointer<T> {
-    fn new(t: &mut T) -> Self {
-        Self {
-            pointer: t as *mut T,
-        }
-    }
+// impl<T> Pointer<T> {
+//     fn new(t: &mut T) -> Self {
+//         Self {
+//             pointer: t as *mut T,
+//         }
+//     }
 
-    const fn null() -> Self {
-        Self {
-            pointer: std::ptr::null_mut(),
-        }
-    }
+//     const fn null() -> Self {
+//         Self {
+//             pointer: std::ptr::null_mut(),
+//         }
+//     }
 
-    unsafe fn as_mut(&self) -> &mut T {
-        &mut *self.pointer
-    }
-}
+//     unsafe fn as_mut(&self) -> &mut T {
+//         &mut *self.pointer
+//     }
+// }
 
 fn main() {    
     env_logger::builder()
