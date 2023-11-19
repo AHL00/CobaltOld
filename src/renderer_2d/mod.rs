@@ -2,44 +2,24 @@ pub mod renderables;
 
 use ahash::AHashMap;
 
-use crate::{window::Window, camera::Camera};
+use crate::{window::Window, camera::Camera, renderer::{Renderable, Renderer}};
 
 use self::renderables::rect::Rect;
 
-pub trait Renderable<'a> {
-    // Called right before the render function
-    // Used to do things like update the vertex buffer
-    fn update(&mut self, window: &mut Window) -> anyhow::Result<()>;
-
-    // Called after the pipeline generated at the start is set to the render_pass
-    // fn render(&mut self, window: &mut Window, encoder: &mut wgpu::CommandEncoder) -> anyhow::Result<()>;
-    fn render(
-        &'a self,
-        window: &mut Window,
-        camera: &'a Camera,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) -> anyhow::Result<()>;
-
-    // Generate the render pipeline at the start, store in a hashmap with the type_id
-    // If the type_id doesn't exist in the hash, the renderer will call the get_pipeline function.
-    // When rendering next, get the pipeline from the hashmap
-    fn type_id() -> std::any::TypeId;
-    fn create_pipeline(window: &mut Window) -> anyhow::Result<wgpu::RenderPipeline>;
-}
-
-pub struct Renderer {
+pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
 }
 
-impl Renderer {
-    pub fn new() -> Renderer {
-        Renderer {
+impl Renderer2D {
+    pub fn new() -> Renderer2D {
+        Renderer2D {
             pipelines: AHashMap::new(),
         }
     }
+}
 
-    /// Updates all renderables then renders them to one render pass
-    pub fn render(&mut self, window: &mut Window, camera: &Camera, world: &mut hecs::World) -> anyhow::Result<()> {
+impl Renderer for Renderer2D {
+    fn render(&mut self, window: &mut Window, camera: &Camera, world: &mut hecs::World) -> anyhow::Result<()> {
         let output = window.surface.get_current_texture()?;
         let view = output
             .texture

@@ -1,4 +1,5 @@
 pub mod rect;
+pub use rect::Rect;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

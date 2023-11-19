@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::rect::Rect, texture::Texture};
+use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Rect};
 
 struct GameState {
     counter: u32,
@@ -34,7 +34,8 @@ fn main() {
         .filter_level(log::LevelFilter::Info)
         .init();
 
-    let mut app = AppBuilder::new();
+    let mut app = AppBuilder::new()
+    .with_renderer(Box::new(cobalt::Renderer2D::new()));
 
     app.register_system(System::timed(
         "Debug".to_string(),

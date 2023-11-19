@@ -18,10 +18,15 @@ pub mod texture;
 pub mod transform;
 pub mod window;
 
+#[cfg(feature = "renderer_2d")]
+pub mod renderer_2d;
+pub use renderer_2d::Renderer2D;
+
+
 pub struct App {
     pub window: window::Window,
     pub camera: camera::Camera,
-    pub renderer: renderer::Renderer,
+    pub renderer: Box<dyn renderer::Renderer>,
     pub input: input::Input,
     pub resources: resources::ResourceManager,
     pub assets: assets::AssetManager,
@@ -33,6 +38,7 @@ pub struct AppBuilder {
     app: Option<App>,
     systems: Vec<System>,
     event_loop: Option<EventLoop<()>>,
+    renderer: Option<Box<dyn renderer::Renderer>>,
 }
 
 impl AppBuilder {
@@ -41,6 +47,7 @@ impl AppBuilder {
             app: None,
             systems: Vec::new(),
             event_loop: None,
+            renderer: None,
         }
     }
 
@@ -159,14 +166,26 @@ impl AppBuilder {
         };
 
         let camera = Camera::new(
+            // Transform::new(
+            //     Vec3::new(0.0, 1.0, 2.0),
+            //     Rotor3::from_euler_angles(0.0, 0.0, 180.0_f32.to_radians()),
+            //     Vec3::one(),
+            // ),
+            // camera::Projection::Perspective { 
+            //     fov: 70.0,
+            //     aspect: 1.7778,
+            //     near: 0.1,
+            //     far: 100.0,
+            // },
+
             Transform::new(
-                Vec3::new(0.0, 1.0, 2.0),
+                Vec3::new(0.0, 0.0, 2.0),
                 Rotor3::from_euler_angles(0.0, 0.0, 180.0_f32.to_radians()),
                 Vec3::one(),
             ),
-            camera::Projection::Perspective { 
-                fov: 70.0,
+            camera::Projection::Orthographic {
                 aspect: 1.7778,
+                height: 2.0,
                 near: 0.1,
                 far: 100.0,
             },
@@ -175,10 +194,14 @@ impl AppBuilder {
 
         log::info!("Window created.");
 
+        if self.renderer.is_none() {
+            return Err(anyhow::anyhow!("No renderer specified."));
+        }
+
         self.app = Some(App {
             window,
             camera,
-            renderer: renderer::Renderer::new(),
+            renderer: self.renderer.take().unwrap(),
             resources: resources::ResourceManager::new(),
             assets: assets::AssetManager::new(),
             world: hecs::World::new(),
@@ -193,6 +216,12 @@ impl AppBuilder {
         if !self.systems.iter().any(|s| s.uuid == system.uuid) {
             self.systems.push(system);
         }
+    }
+
+    pub fn with_renderer(mut self, renderer: Box<dyn renderer::Renderer>) -> Self {
+        self.renderer = Some(renderer);
+
+        self
     }
 }
 

@@ -18,10 +18,8 @@ pub enum Projection {
         far: f32,
     },
     Orthographic {
-        left: f32,
-        right: f32,
-        bottom: f32,
-        top: f32,
+        aspect: f32,
+        height: f32,
         near: f32,
         far: f32,
     },
@@ -107,15 +105,24 @@ impl Camera {
                 fov.to_radians(), aspect, near, far,
             ),
             Projection::Orthographic {
-                left,
-                right,
-                bottom,
-                top,
+                aspect,
+                height,
                 near,
                 far,
-            } => ultraviolet::projection::orthographic_wgpu_dx(
+            } => {
+
+            let pos = self.transform.position;
+
+            let left = -aspect * height / 2.0 + pos.x;
+            let right = aspect * height / 2.0 + pos.x;
+            let bottom = -height / 2.0 + pos.y;
+            let top = height / 2.0 + pos.y;
+                
+            ultraviolet::projection::orthographic_wgpu_dx(
                 left, right, bottom, top, near, far,
-            ),
+            )
+        
+        },
         }
     }
 
