@@ -2,7 +2,7 @@ use ultraviolet::Vec4;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets::Asset, camera::Camera, renderer::Renderable, texture::Texture, window::Window, App,
+    assets::Asset, camera::Camera, renderer::Renderable, texture::Texture, window::Window, App, transform::Transform,
 };
 
 use super::UvVertex;
@@ -100,6 +100,7 @@ impl<'a> Renderable<'a> for Rect {
         &'a self,
         window: &mut crate::window::Window,
         camera: &'a Camera,
+        transform: &'a mut Transform,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> anyhow::Result<()> {
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -110,6 +111,10 @@ impl<'a> Renderable<'a> for Rect {
         }
 
         render_pass.set_bind_group(1, &camera.bind_group, &[]);
+
+        transform.update_uniform(window);
+
+        render_pass.set_bind_group(2, &transform.bind_group.as_ref().unwrap(), &[]);
 
         render_pass.draw_indexed(0..RECT_INDICES.len() as u32, 0, 0..1);
 
@@ -127,13 +132,14 @@ impl<'a> Renderable<'a> for Rect {
 
         let texture_bind_group_layout = Texture::get_bind_group_layout(&window.device);
         let camera_bind_group_layout = Camera::get_bind_group_layout(&window.device);
+        let transform_bind_group_layout = Transform::get_bind_group_layout(&window.device);
 
         let render_pipeline_layout =
             window
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Quad Render Pipeline Layout"),
-                    bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+                    bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout, &transform_bind_group_layout],
                     push_constant_ranges: &[],
                 });
 

@@ -2,7 +2,7 @@ pub mod renderables;
 
 use ahash::AHashMap;
 
-use crate::{window::Window, camera::Camera, renderer::{Renderable, Renderer}};
+use crate::{window::Window, camera::Camera, renderer::{Renderable, Renderer}, transform::Transform};
 
 use self::renderables::rect::Rect;
 
@@ -59,8 +59,8 @@ impl Renderer for Renderer2D {
 
             unsafe {
                 render_pass.set_pipeline(self.pipelines.get(&Rect::type_id()).unwrap());
-                for (i, rect) in (&mut *world_raw_ptr).query_mut::<&mut Rect>() {
-                    rect.render(window, camera, &mut render_pass)?;
+                for (i, (rect, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Rect, &mut Transform)>() {
+                    rect.render(window, camera, transform, &mut render_pass)?;
                 }
             }
         } // Renderpass

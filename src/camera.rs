@@ -111,7 +111,7 @@ impl Camera {
                 far,
             } => {
 
-            let pos = self.transform.position;
+            let pos = self.transform.position();
 
             let left = -aspect * height / 2.0 + pos.x;
             let right = aspect * height / 2.0 + pos.x;
@@ -127,7 +127,7 @@ impl Camera {
     }
 
     fn view_matrix(&self) -> ultraviolet::Mat4 {
-        let (pos_x, pos_y, pos_z) = self.transform.position.into();
+        let pos = self.transform.position();
         let (up_x, up_y, up_z) = self.transform.up().into();
         let (forward_x, forward_y, forward_z) = self.transform.forward().into();
 
@@ -138,7 +138,7 @@ impl Camera {
         // );
 
         let cg_mat = cgmath::Matrix4::look_to_rh(
-            cgmath::Point3::new(pos_x, pos_y, pos_z),
+            cgmath::Point3::new(pos.x, pos.y, pos.z),
             cgmath::Vector3::new(forward_x, forward_y, forward_z),
             cgmath::Vector3::new(up_x, up_y, up_z),
         );

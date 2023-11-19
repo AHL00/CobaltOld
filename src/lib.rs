@@ -180,7 +180,7 @@ impl AppBuilder {
 
             Transform::new(
                 Vec3::new(0.0, 0.0, 2.0),
-                Rotor3::from_euler_angles(0.0, 0.0, 180.0_f32.to_radians()),
+                Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
                 Vec3::one(),
             ),
             camera::Projection::Orthographic {

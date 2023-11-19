@@ -1,4 +1,4 @@
-use crate::{window::Window, camera::Camera};
+use crate::{window::Window, camera::Camera, transform::Transform};
 
 pub trait Renderable<'a> {
     // Called right before the render function
@@ -11,6 +11,7 @@ pub trait Renderable<'a> {
         &'a self,
         window: &mut Window,
         camera: &'a Camera,
+        transform: &'a mut Transform,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) -> anyhow::Result<()>;
 

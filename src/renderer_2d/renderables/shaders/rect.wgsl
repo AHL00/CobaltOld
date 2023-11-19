@@ -12,8 +12,10 @@ struct CameraUniform {
 @group(1) @binding(0)
 var<uniform> camera: CameraUniform;
 
-// Vertex shader
+@group(2) @binding(0)
+var<uniform> model: mat4x4<f32>;
 
+// Vertex shader
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) uv: vec2<f32>,
@@ -31,12 +33,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
 
-    out.clip_position = camera.view_proj * vec4<f32>(in.position, 1.0);
-
-    // Temporary workaround for
-    // w being zero for some reason
-    // out.clip_position.w = 1.0;
-    
+    out.clip_position = model * camera.view_proj * vec4<f32>(in.position, 1.0);
     out.uv = in.uv;
 
     return out;

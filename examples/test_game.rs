@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Rect};
+use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Rect, transform::Transform};
+use ultraviolet::Vec3;
 
 struct GameState {
     counter: u32,
@@ -41,64 +42,37 @@ fn main() {
         "Debug".to_string(),
         |app, delta| {
 
-            if app.input.is_key_down(cobalt::input::Key::KeyW) {
-                app.camera.transform.position -= app.camera.transform.forward() * 0.1;
-            }
+            // world iterate over all transforms
+            let mut obj_pos = Vec3::zero();
 
-            if app.input.is_key_down(cobalt::input::Key::KeyS) {
-                app.camera.transform.position += app.camera.transform.forward() * 0.1;
-            }
+            for (id, transform) in app.world.query_mut::<&mut Transform>() {
+                if app.input.is_key_down(cobalt::input::Key::KeyW) {
+                    transform.position_mut().y += 1.0 * delta.as_secs_f32();
+                }
 
-            if app.input.is_key_down(cobalt::input::Key::KeyA) {
-                app.camera.transform.position += app.camera.transform.right() * 0.1;
-            }
+                if app.input.is_key_down(cobalt::input::Key::KeyS) {
+                    transform.position_mut().y -= 1.0 * delta.as_secs_f32();
+                }
 
-            if app.input.is_key_down(cobalt::input::Key::KeyD) {
-                app.camera.transform.position -= app.camera.transform.right() * 0.1;
-            }
+                if app.input.is_key_down(cobalt::input::Key::KeyA) {
+                    transform.position_mut().x -= 1.0 * delta.as_secs_f32();
+                }
 
-            if app.input.is_key_down(cobalt::input::Key::ShiftLeft) {
-                app.camera.transform.position += app.camera.transform.up() * 0.1;
-            }
+                if app.input.is_key_down(cobalt::input::Key::KeyD) {
+                    transform.position_mut().x += 1.0 * delta.as_secs_f32();
+                }
 
-            if app.input.is_key_down(cobalt::input::Key::Space) {
-                app.camera.transform.position -= app.camera.transform.up() * 0.1;
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::ArrowRight) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xz(0.1);
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::ArrowLeft) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xz(-0.1);
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::ArrowUp) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_yz(0.1);
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::ArrowDown) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_yz(-0.1);
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::KeyQ) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xy(0.1);
-            }
-
-            if app.input.is_key_down(cobalt::input::Key::KeyE) {
-                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xy(-0.1);
-            }
+                obj_pos = *transform.position();
+            };
 
             // Clear line and go up
-            for _ in 0..5 {
+            for _ in 0..3 {
                 print!("\x1b[1A\x1b[2K");
             }
 
             println!("FPS: {}, Frame Time: {}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
-            println!("Camera Position: {:?}", app.camera.transform.position);
-            println!("Camera Rotation: {:?}", app.camera.transform.rotation);
-            println!("Camera Up: {:?}", app.camera.transform.up());
-            println!("Camera Forward: {:?}", app.camera.transform.forward());
+            println!("Camera Position: {:?}", app.camera.transform.position());
+            println!("Object Position: {:?}", obj_pos);
 
         },
         Duration::from_millis(100),
@@ -118,7 +92,11 @@ fn main() {
 
             let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
             
-            app.world.spawn((Rect::with_texture(&app, test_texture.clone()), ));
+            app.world.spawn((Rect::with_texture(&app, test_texture.clone()), Transform::new(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(1.0, 1.0, 1.0),
+            )));
         },
     )); 
 
