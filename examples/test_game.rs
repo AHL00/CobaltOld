@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Rect, transform::Transform};
+use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Sprite, transform::Transform};
 use ultraviolet::Vec3;
 
 struct GameState {
@@ -66,13 +66,11 @@ fn main() {
             };
 
             // Clear line and go up
-            for _ in 0..3 {
+            for _ in 0..1 {
                 print!("\x1b[1A\x1b[2K");
             }
 
-            println!("FPS: {}, Frame Time: {}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
-            println!("Camera Position: {:?}", app.camera.transform.position());
-            println!("Object Position: {:?}", obj_pos);
+            println!("FPS: {}, Frame Time: {:?}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
 
         },
         Duration::from_millis(100),
@@ -90,9 +88,9 @@ fn main() {
 
             app.world.spawn((1u32, "test".to_string()));
 
-            let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
+            let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!(/*"texture.png"*/ "../images/logo.png"))).expect("Failed to create asset.");
             
-            app.world.spawn((Rect::new(&app, test_texture.clone()), Transform::new(
+            app.world.spawn((Sprite::new(&app, test_texture.clone()), Transform::new(
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0),

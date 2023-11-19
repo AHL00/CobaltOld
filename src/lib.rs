@@ -187,7 +187,7 @@ impl AppBuilder {
             ),
             camera::Projection::Orthographic {
                 aspect: 1.7778,
-                height: 2.0,
+                height: 10.0,
                 near: 0.1,
                 far: 100.0,
             },
@@ -229,7 +229,7 @@ impl AppBuilder {
 
 pub struct PerformanceStatistics {
     pub fps: f64,
-    pub avg_frame_time: f64,
+    pub avg_frame_time: std::time::Duration,
     pub collection_duration: std::time::Duration,
     frame_counter: u64,
     last_collection: std::time::Instant,
@@ -239,7 +239,7 @@ impl PerformanceStatistics {
     pub fn new(collection_duration: std::time::Duration) -> PerformanceStatistics {
         PerformanceStatistics {
             fps: 0.0,
-            avg_frame_time: 0.0,
+            avg_frame_time: std::time::Duration::from_secs(0),
             collection_duration,
             frame_counter: 0,
             last_collection: std::time::Instant::now(),
@@ -249,7 +249,7 @@ impl PerformanceStatistics {
     pub fn tick(&mut self) {
         if self.last_collection.elapsed() >= self.collection_duration {
             self.fps = self.frame_counter as f64 / self.collection_duration.as_secs_f64();
-            self.avg_frame_time = 1.0 / self.fps;
+            self.avg_frame_time = self.collection_duration / self.frame_counter as u32;
             self.frame_counter = 0;
             self.last_collection = std::time::Instant::now();
         }

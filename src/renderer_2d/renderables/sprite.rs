@@ -28,7 +28,7 @@ const RECT_VERTICES: &[UvVertex] = &[
 
 const RECT_INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-pub struct Rect {
+pub struct Sprite {
     texture: Option<Asset<Texture>>,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
@@ -37,13 +37,13 @@ pub struct Rect {
     model_matrix_uniform: Uniform<Mat4>,
 }
 
-impl Rect {
+impl Sprite {
     pub fn new(app: &App, texture: Asset<Texture>) -> Self {
         let vertex_buffer =
             app.window
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Quad Vertex Buffer"),
+                    label: Some("Sprite Vertex Buffer"),
                     contents: bytemuck::cast_slice(&RECT_VERTICES),
                     usage: wgpu::BufferUsages::VERTEX,
                 });
@@ -52,7 +52,7 @@ impl Rect {
             app.window
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Quad Index Buffer"),
+                    label: Some("Sprite Index Buffer"),
                     contents: bytemuck::cast_slice(&RECT_INDICES),
                     usage: wgpu::BufferUsages::INDEX,
                 });
@@ -68,7 +68,7 @@ impl Rect {
     }
 }
 
-impl<'a> Renderable<'a> for Rect {
+impl<'a> Renderable<'a> for Sprite {
     fn update(&mut self, window: &mut crate::window::Window) -> anyhow::Result<()> {
         Ok(())
     }
@@ -107,7 +107,7 @@ impl<'a> Renderable<'a> for Rect {
     fn create_pipeline(window: &mut Window) -> anyhow::Result<wgpu::RenderPipeline> {
         let shader = window
             .device
-            .create_shader_module(wgpu::include_wgsl!("shaders/rect.wgsl"));
+            .create_shader_module(wgpu::include_wgsl!("shaders/sprite.wgsl"));
 
         let texture_bind_group_layout = Texture::get_bind_group_layout(&window.device);
         let camera_bind_group_layout = Camera::get_bind_group_layout(&window.device);
@@ -138,10 +138,7 @@ impl<'a> Renderable<'a> for Rect {
                         entry_point: "fs_main",
                         targets: &[Some(wgpu::ColorTargetState {
                             format: window.config.format,
-                            blend: Some(wgpu::BlendState {
-                                color: wgpu::BlendComponent::REPLACE,
-                                alpha: wgpu::BlendComponent::REPLACE,
-                            }),
+                            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                             write_mask: wgpu::ColorWrites::ALL,
                         })],
                     }),
@@ -149,7 +146,7 @@ impl<'a> Renderable<'a> for Rect {
                         topology: wgpu::PrimitiveTopology::TriangleList,
                         strip_index_format: None,
                         front_face: wgpu::FrontFace::Ccw,
-                        cull_mode: Some(wgpu::Face::Back),
+                        cull_mode: None,
                         // Setting this to anything other than Fill requires Features::POLYGON_MODE_LINE
                         // or Features::POLYGON_MODE_POINT
                         polygon_mode: wgpu::PolygonMode::Fill,

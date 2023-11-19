@@ -1,5 +1,5 @@
-pub mod rect;
-pub use rect::Rect;
+pub mod sprite;
+pub use sprite::Sprite;
 
 use crate::{window::Window, camera::Camera, transform::Transform};
 

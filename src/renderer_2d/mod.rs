@@ -4,7 +4,7 @@ use ahash::AHashMap;
 
 use crate::{window::Window, camera::Camera, renderer::Renderer, transform::Transform};
 
-use self::renderables::{rect::Rect, Renderable};
+use self::renderables::{sprite::Sprite, Renderable};
 
 pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
@@ -47,19 +47,19 @@ impl Renderer for Renderer2D {
             });
 
             // TODO: Make a macro that does this for a bunch of types automatically
-            if !self.pipelines.contains_key(&Rect::type_id()) {
+            if !self.pipelines.contains_key(&Sprite::type_id()) {
                 // Generate pipeline
-                let pipeline = Rect::create_pipeline(window)?;
+                let pipeline = Sprite::create_pipeline(window)?;
 
                 self.pipelines
-                    .extend(std::iter::once((Rect::type_id(), pipeline)));
+                    .extend(std::iter::once((Sprite::type_id(), pipeline)));
             }
 
             let world_raw_ptr = world as *mut hecs::World;
 
             unsafe {
-                render_pass.set_pipeline(self.pipelines.get(&Rect::type_id()).unwrap());
-                for (i, (rect, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Rect, &mut Transform)>() {
+                render_pass.set_pipeline(self.pipelines.get(&Sprite::type_id()).unwrap());
+                for (i, (rect, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Sprite, &mut Transform)>() {
                     rect.render(window, camera, transform, &mut render_pass)?;
                 }
             }
