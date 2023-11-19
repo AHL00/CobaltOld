@@ -22,6 +22,8 @@ pub mod window;
 pub mod renderer_2d;
 pub use renderer_2d::Renderer2D;
 
+pub(crate) mod uniform;
+
 
 pub struct App {
     pub window: window::Window,

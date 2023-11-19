@@ -2,9 +2,9 @@ pub mod renderables;
 
 use ahash::AHashMap;
 
-use crate::{window::Window, camera::Camera, renderer::{Renderable, Renderer}, transform::Transform};
+use crate::{window::Window, camera::Camera, renderer::Renderer, transform::Transform};
 
-use self::renderables::rect::Rect;
+use self::renderables::{rect::Rect, Renderable};
 
 pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,

@@ -1,11 +1,11 @@
-use ultraviolet::Vec4;
+use ultraviolet::{Vec4, Mat4};
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets::Asset, camera::Camera, renderer::Renderable, texture::Texture, window::Window, App, transform::Transform,
+    assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::{Transform, self}, uniform::Uniform,
 };
 
-use super::UvVertex;
+use super::{UvVertex, Renderable, UvColorVertex};
 
 const RECT_VERTICES: &[UvVertex] = &[
     UvVertex {
@@ -29,14 +29,16 @@ const RECT_VERTICES: &[UvVertex] = &[
 const RECT_INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 pub struct Rect {
-    color: Vec4,
     texture: Option<Asset<Texture>>,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+
+    /// Automatically synced during render
+    model_matrix_uniform: Uniform<Mat4>,
 }
 
 impl Rect {
-    pub fn new(app: &App, color: Vec4) -> Self {
+    pub fn new(app: &App, texture: Asset<Texture>) -> Self {
         let vertex_buffer =
             app.window
                 .device
@@ -55,38 +57,13 @@ impl Rect {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
-        Self {
-            color,
-            texture: None,
-            vertex_buffer,
-            index_buffer,
-        }
-    }
-
-    pub fn with_texture(app: &App, texture: Asset<Texture>) -> Self {
-        let vertex_buffer =
-            app.window
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Quad Vertex Buffer"),
-                    contents: bytemuck::cast_slice(&RECT_VERTICES),
-                    usage: wgpu::BufferUsages::VERTEX,
-                });
-
-        let index_buffer =
-            app.window
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Quad Index Buffer"),
-                    contents: bytemuck::cast_slice(&RECT_INDICES),
-                    usage: wgpu::BufferUsages::INDEX,
-                });
+        let transform_uniform = Uniform::<Mat4>::new(&app.window.device, &Mat4::identity(), 0);
 
         Self {
-            color: Vec4::one(),
             texture: Some(texture),
             vertex_buffer,
             index_buffer,
+            model_matrix_uniform: transform_uniform,
         }
     }
 }
@@ -112,9 +89,11 @@ impl<'a> Renderable<'a> for Rect {
 
         render_pass.set_bind_group(1, &camera.bind_group, &[]);
 
-        transform.update_uniform(window);
+        if transform.recalculate_matrix() {
+            self.model_matrix_uniform.update(&transform.model_matrix(), &window.queue);
+        }
 
-        render_pass.set_bind_group(2, &transform.bind_group.as_ref().unwrap(), &[]);
+        render_pass.set_bind_group(2, &self.model_matrix_uniform.bind_group, &[]);
 
         render_pass.draw_indexed(0..RECT_INDICES.len() as u32, 0, 0..1);
 
@@ -132,14 +111,14 @@ impl<'a> Renderable<'a> for Rect {
 
         let texture_bind_group_layout = Texture::get_bind_group_layout(&window.device);
         let camera_bind_group_layout = Camera::get_bind_group_layout(&window.device);
-        let transform_bind_group_layout = Transform::get_bind_group_layout(&window.device);
+        let model_matrix_bind_group_layout = Uniform::<Mat4>::get_bind_group_layout(&window.device);
 
         let render_pipeline_layout =
             window
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Quad Render Pipeline Layout"),
-                    bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout, &transform_bind_group_layout],
+                    bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout, &model_matrix_bind_group_layout],
                     push_constant_ranges: &[],
                 });
 

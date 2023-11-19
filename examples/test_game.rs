@@ -92,7 +92,7 @@ fn main() {
 
             let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!("texture.png"))).expect("Failed to create asset.");
             
-            app.world.spawn((Rect::with_texture(&app, test_texture.clone()), Transform::new(
+            app.world.spawn((Rect::new(&app, test_texture.clone()), Transform::new(
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0),
