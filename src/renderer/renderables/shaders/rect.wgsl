@@ -35,7 +35,7 @@ fn vs_main(
 
     // Temporary workaround for
     // w being zero for some reason
-    out.clip_position.w = 1.0;
+    // out.clip_position.w = 1.0;
     
     out.uv = in.uv;
 

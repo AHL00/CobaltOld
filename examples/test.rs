@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::{rect::Rect}, texture::Texture};
+use cobalt::{system::System, AppBuilder, assets::Asset, renderer::renderables::rect::Rect, texture::Texture};
 
 struct GameState {
     counter: u32,
@@ -37,30 +37,31 @@ fn main() {
     let mut app = AppBuilder::new();
 
     app.register_system(System::timed(
-        "Camera Move".to_string(),
+        "Debug".to_string(),
         |app, delta| {
-            if app.input.is_key_down(cobalt::input::Key::KeyW) {
-                app.camera.transform.position += app.camera.transform.forward() * 0.1;
-            }
 
-            if app.input.is_key_down(cobalt::input::Key::KeyS) {
+            if app.input.is_key_down(cobalt::input::Key::KeyW) {
                 app.camera.transform.position -= app.camera.transform.forward() * 0.1;
             }
 
-            if app.input.is_key_down(cobalt::input::Key::KeyA) {
-                app.camera.transform.position -= app.camera.transform.right() * 0.1;
+            if app.input.is_key_down(cobalt::input::Key::KeyS) {
+                app.camera.transform.position += app.camera.transform.forward() * 0.1;
             }
 
-            if app.input.is_key_down(cobalt::input::Key::KeyD) {
+            if app.input.is_key_down(cobalt::input::Key::KeyA) {
                 app.camera.transform.position += app.camera.transform.right() * 0.1;
             }
 
+            if app.input.is_key_down(cobalt::input::Key::KeyD) {
+                app.camera.transform.position -= app.camera.transform.right() * 0.1;
+            }
+
             if app.input.is_key_down(cobalt::input::Key::ShiftLeft) {
-                app.camera.transform.position -= app.camera.transform.up() * 0.1;
+                app.camera.transform.position += app.camera.transform.up() * 0.1;
             }
 
             if app.input.is_key_down(cobalt::input::Key::Space) {
-                app.camera.transform.position += app.camera.transform.up() * 0.1;
+                app.camera.transform.position -= app.camera.transform.up() * 0.1;
             }
 
             if app.input.is_key_down(cobalt::input::Key::ArrowRight) {
@@ -78,16 +79,28 @@ fn main() {
             if app.input.is_key_down(cobalt::input::Key::ArrowDown) {
                 app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_yz(-0.1);
             }
+
+            if app.input.is_key_down(cobalt::input::Key::KeyQ) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xy(0.1);
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::KeyE) {
+                app.camera.transform.rotation = app.camera.transform.rotation * ultraviolet::Rotor3::from_rotation_xy(-0.1);
+            }
+
+            // Clear line and go up
+            for _ in 0..5 {
+                print!("\x1b[1A\x1b[2K");
+            }
+
+            println!("FPS: {}, Frame Time: {}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
+            println!("Camera Position: {:?}", app.camera.transform.position);
+            println!("Camera Rotation: {:?}", app.camera.transform.rotation);
+            println!("Camera Up: {:?}", app.camera.transform.up());
+            println!("Camera Forward: {:?}", app.camera.transform.forward());
+
         },
         Duration::from_millis(100),
-    ));
-
-    app.register_system(System::timed(
-        "Perf Stats".to_string(),
-        |app, delta| {
-            println!("FPS: {}, Frame Time: {}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
-        },
-        Duration::from_millis(1000),
     ));
 
     app.register_system(System::startup(
@@ -119,12 +132,12 @@ fn main() {
 
         res.asset = ass2;
 
-        println!("Asset: {}", *ass);
+        // println!("Asset: {}", *ass);
 
         for (id, (i, string)) in app.world.query_mut::<(&mut u32, &String)>() {
             *i += 1;
 
-            println!("Counter: {}, str: {}", i, string);
+            // println!("Counter: {}, str: {}", i, string);
         }
     }, Duration::from_millis(1000)));
 

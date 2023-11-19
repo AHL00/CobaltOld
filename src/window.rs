@@ -13,6 +13,7 @@ impl Window {
     pub fn create(event_loop: &EventLoop<()>) -> anyhow::Result<Window> {
         let winit_win = winit::window::WindowBuilder::new()
             .with_title("Cobalt")
+            .with_inner_size(winit::dpi::LogicalSize::new(1280, 720))
             .build(&event_loop)
             .unwrap();
 
