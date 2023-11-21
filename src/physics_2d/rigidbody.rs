@@ -21,6 +21,8 @@ struct Force2D {
 }
 
 pub struct Rigidbody2D {
+    pub enabled: bool,
+
     pub velocity: Vec2,
     pub acceleration: Vec2,
     pub mass: f32,
@@ -36,6 +38,7 @@ pub struct Rigidbody2D {
 impl Rigidbody2D {
     pub fn new() -> Self {
         Self {
+            enabled: true,
             velocity: Vec2::zero(),
             acceleration: Vec2::zero(),
             mass: 1.0,
@@ -48,6 +51,12 @@ impl Rigidbody2D {
             constrain_rot_z: false,
         }
     }
+    
+    pub fn reset(&mut self) {
+        self.velocity = Vec2::zero();
+        self.acceleration = Vec2::zero();
+        self.forces.clear();
+    }
 
     pub fn add_force(&mut self, force: Vec2, mode: ForceMode2D) {
         self.forces.push(Force2D {
@@ -55,10 +64,18 @@ impl Rigidbody2D {
             mode,
         });
     }
+
+    pub fn reset_forces(&mut self) {
+        self.forces.clear();
+    }
 }
 
 impl Simulatable2D for Rigidbody2D {
     fn simulate(&mut self, delta: f32, transform: &mut Transform, constants: &PhysicsConstants) {
+        if !self.enabled {
+            return;
+        }
+
         // Reset acceleration
         self.acceleration = Vec2::zero();
 

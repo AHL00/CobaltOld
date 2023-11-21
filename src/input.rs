@@ -1,8 +1,12 @@
 
 pub use winit::keyboard::KeyCode as Key;
 
+/// TODO: Optimize entire system
 pub struct Input {
-    pub(crate) keys: Vec<winit::keyboard::KeyCode>,
+    /// The bool stores whether the key was just clicked
+    /// The key is set false when either the is_key_clicked function is called
+    /// On addition, the key is set to true
+    pub(crate) keys: Vec<(winit::keyboard::KeyCode, bool)>,
     pub(crate) mouse: winit::event::MouseButton,
     pub(crate) mouse_pos: (f64, f64),
     pub(crate) mouse_delta: (f64, f64),
@@ -26,10 +30,10 @@ impl Input {
                 if let winit::keyboard::PhysicalKey::Code(key_code) = event.physical_key {
                     match event.state {
                         winit::event::ElementState::Pressed => {
-                            self.keys.push(key_code);
+                            self.keys.push((key_code, true));
                         }
                         winit::event::ElementState::Released => {
-                            self.keys.retain(|&k| k != key_code);
+                            self.keys.retain(|(k, _)| *k != key_code);
                         }
                     }
                 }
@@ -60,8 +64,27 @@ impl Input {
         Ok(())
     }
 
+    /// Returns true once after a key is pressed.
+    pub fn is_key_clicked(&mut self, key: winit::keyboard::KeyCode) -> bool {
+        for (k, just_clicked) in &mut self.keys {
+            if *k == key && *just_clicked {
+                *just_clicked = false;
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns true while a key is continuously pressed.
     pub fn is_key_down(&self, key: winit::keyboard::KeyCode) -> bool {
-        self.keys.contains(&key)
+        for (k, _) in &self.keys {
+            if *k == key {
+                return true;
+            }
+        }
+
+        false
     }
 
     pub fn is_mouse_down(&self, button: winit::event::MouseButton) -> bool {

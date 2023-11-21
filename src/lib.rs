@@ -209,7 +209,7 @@ impl AppBuilder {
             ),
             Projection::Orthographic {
                 aspect: 1.7778,
-                height: 10.0,
+                height: 25.0,
                 near: 0.1,
                 far: 100.0,
             },

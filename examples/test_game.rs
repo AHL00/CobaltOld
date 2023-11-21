@@ -48,23 +48,38 @@ fn main() {
 
             for (id, transform) in app.world.query_mut::<&mut Transform>() {
                 if app.input.is_key_down(cobalt::input::Key::KeyW) {
-                    transform.position_mut().y += 1.0 * delta.as_secs_f32();
+                    transform.position_mut().y += 10.0 * delta.as_secs_f32();
                 }
 
                 if app.input.is_key_down(cobalt::input::Key::KeyS) {
-                    transform.position_mut().y -= 1.0 * delta.as_secs_f32();
+                    transform.position_mut().y -= 10.0 * delta.as_secs_f32();
                 }
 
                 if app.input.is_key_down(cobalt::input::Key::KeyA) {
-                    transform.position_mut().x -= 1.0 * delta.as_secs_f32();
+                    transform.position_mut().x -= 10.0 * delta.as_secs_f32();
                 }
 
                 if app.input.is_key_down(cobalt::input::Key::KeyD) {
-                    transform.position_mut().x += 1.0 * delta.as_secs_f32();
+                    transform.position_mut().x += 10.0 * delta.as_secs_f32();
                 }
 
                 obj_pos = *transform.position();
             };
+
+            if app.input.is_key_clicked(cobalt::input::Key::Space) {
+                // Toggle rigidbody
+                for (id, rigidbody) in app.world.query_mut::<&mut Rigidbody2D>() {
+                    rigidbody.enabled = !rigidbody.enabled;
+                }
+            }
+
+            if app.input.is_key_clicked(cobalt::input::Key::KeyR) {
+                // Reset position
+                for (id, (transform, rigidbody)) in app.world.query_mut::<(&mut Transform, &mut Rigidbody2D)>() {
+                    *transform.position_mut() = Vec3::zero();
+                    rigidbody.reset();
+                }
+            }
         },
         Duration::from_millis(5),
     ));
@@ -73,7 +88,7 @@ fn main() {
         "Debug".to_string(),
         |app, delta| {
             // Clear line and go up
-            for _ in 0..2 {
+            for _ in 0..3 {
                 print!("\x1b[1A\x1b[2K");
             }
 
@@ -82,7 +97,9 @@ fn main() {
             // Get only transform in world
             for (id, transform) in app.world.query::<&Transform>().iter() {
                 println!("Transform: {:?}", transform.position());
+                println!("Screen: {:?}", app.camera.world_to_screen(&app.window, transform.position()));
             }
+
 
         },
         Duration::from_millis(100),
@@ -103,11 +120,11 @@ fn main() {
             let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!(/*"texture.png"*/ "../images/logo.png"))).expect("Failed to create asset.");
             
             app.world.spawn((Sprite::new(&app, test_texture.clone()), Transform::new(
-                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 25.0, 0.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0),
             ),
-            // Rigidbody2D::new(),
+            Rigidbody2D::new(),
         ));
         },
     )); 

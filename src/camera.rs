@@ -8,6 +8,9 @@ pub struct Camera {
 
     pub(crate) uniform_buffer: wgpu::Buffer,
     pub(crate) bind_group: wgpu::BindGroup,
+
+    cached_projection_matrix: Option<ultraviolet::Mat4>,
+    cached_view_matrix: Option<ultraviolet::Mat4>,
 }
 
 pub enum Projection {
@@ -94,15 +97,18 @@ impl Camera {
         );
     }
 
-    fn projection_matrix(&self) -> ultraviolet::Mat4 {
-        match self.projection {
+    fn projection_matrix(&mut self) -> ultraviolet::Mat4 {
+        let mat = match self.projection {
             Projection::Perspective {
                 fov,
                 aspect,
                 near,
                 far,
             } => ultraviolet::projection::perspective_reversed_z_wgpu_dx_gl(
-                fov.to_radians(), aspect, near, far,
+                fov.to_radians(),
+                aspect,
+                near,
+                far,
             ),
             Projection::Orthographic {
                 aspect,
@@ -110,22 +116,23 @@ impl Camera {
                 near,
                 far,
             } => {
+                let pos = self.transform.position();
 
-            let pos = self.transform.position();
+                let left = -aspect * height / 2.0 + pos.x;
+                let right = aspect * height / 2.0 + pos.x;
+                let bottom = -height / 2.0 + pos.y;
+                let top = height / 2.0 + pos.y;
 
-            let left = -aspect * height / 2.0 + pos.x;
-            let right = aspect * height / 2.0 + pos.x;
-            let bottom = -height / 2.0 + pos.y;
-            let top = height / 2.0 + pos.y;
-                
-            ultraviolet::projection::orthographic_wgpu_dx(
-                left, right, bottom, top, near, far,
-            )
-        },
-        }
+                ultraviolet::projection::orthographic_wgpu_dx(left, right, bottom, top, near, far)
+            }
+        };
+
+        self.cached_projection_matrix = Some(mat);
+
+        mat
     }
 
-    fn view_matrix(&self) -> ultraviolet::Mat4 {
+    fn view_matrix(&mut self) -> ultraviolet::Mat4 {
         let pos = self.transform.position();
         let (up_x, up_y, up_z) = self.transform.up().into();
         let (forward_x, forward_y, forward_z) = self.transform.forward().into();
@@ -142,14 +149,14 @@ impl Camera {
             cgmath::Vector3::new(up_x, up_y, up_z),
         );
 
-        let mat = Self::cgmath_to_ultraviolet_mat4(cg_mat);
+        let mat = Self::cgmath_to_ultraviolet_mat4(&cg_mat);
 
-        println!("View Matrix: {:?}", mat);
+        self.cached_view_matrix = Some(mat);
 
         mat
     }
 
-    fn cgmath_to_ultraviolet_mat4(mat: cgmath::Matrix4<f32>) -> ultraviolet::Mat4 {
+    fn cgmath_to_ultraviolet_mat4(mat: &cgmath::Matrix4<f32>) -> ultraviolet::Mat4 {
         ultraviolet::Mat4 {
             cols: [
                 ultraviolet::Vec4 {
@@ -180,50 +187,30 @@ impl Camera {
         }
     }
 
+    /// Converts a point in world space to screen space
+    /// x and y are the coordinates on the screen
+    /// z is the depth value in the range of -1.0 to 1.0
     pub fn world_to_screen(&self, window: &Window, point: &ultraviolet::Vec3) -> ultraviolet::Vec3 {
-        match self.projection {
-            Projection::Perspective { .. } => {
-                // let view = self.view_matrix();
-                // let proj = self.projection_matrix();
-
-                // let view_proj = proj * view;
-
-                // let clip = view_proj * ultraviolet::Vec4::from(point.extend(1.0));
-
-                // let ndc = clip / clip.w;
-
-                // let window = ultraviolet::Vec3::new(
-                //     (ndc.x + 1.0) / 2.0 * crate::window::WINDOW_WIDTH as f32,
-                //     (1.0 - ndc.y) / 2.0 * crate::window::WINDOW_HEIGHT as f32,
-                //     ndc.z,
-                // );
-
-                // window
-                unimplemented!()
-            }
-            Projection::Orthographic { .. } => {
-                let view = self.view_matrix();
-                let proj = self.projection_matrix();
-
-                let view_proj = proj * view;
-
-                let clip = view_proj * ultraviolet::Vec4::new(point.x, point.y, point.z, 1.0);
-
-                let ndc = clip / clip.w;
-
-                println!("NDC: {:?}", ndc);
-                
-                let win_size = window.winit_win.inner_size();
-
-                let window = ultraviolet::Vec3::new(
-                    (ndc.x + 1.0) / 2.0 * win_size.width as f32,
-                    (1.0 - ndc.y) / 2.0 * win_size.height as f32,
-                    ndc.z,
-                );
-
-                window
-            }
+        if self.cached_projection_matrix.is_none() || self.cached_view_matrix.is_none() {
+            log::error!("world_to_screen() called before camera matrices were ever cached, returning (0, 0, 0)");
+            return ultraviolet::Vec3::zero();
         }
+
+        let view_proj = self.cached_projection_matrix.unwrap() * self.cached_view_matrix.unwrap();
+
+        let clip = view_proj * ultraviolet::Vec4::new(point.x, point.y, point.z, 1.0);
+
+        let ndc = clip / clip.w;
+
+        let win_size = window.winit_win.inner_size();
+
+        let window = ultraviolet::Vec3::new(
+            (ndc.x + 1.0) / 2.0 * win_size.width as f32,
+            (1.0 - ndc.y) / 2.0 * win_size.height as f32,
+            ndc.z,
+        );
+
+        window
     }
 
     pub fn new(
@@ -260,6 +247,8 @@ impl Camera {
             projection,
             uniform_buffer,
             bind_group,
+            cached_projection_matrix: None,
+            cached_view_matrix: None,
         }
     }
 }
