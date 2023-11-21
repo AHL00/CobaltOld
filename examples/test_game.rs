@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Sprite, transform::Transform};
+use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Sprite, transform::Transform, physics_2d::rigidbody::Rigidbody2D};
 use ultraviolet::Vec3;
 
 struct GameState {
@@ -36,10 +36,11 @@ fn main() {
         .init();
 
     let mut app = AppBuilder::new()
-    .with_renderer(Box::new(cobalt::Renderer2D::new()));
+    .with_renderer(Box::new(cobalt::Renderer2D::new()))
+    .with_physics(Box::new(cobalt::Physics2D::new()));
 
     app.register_system(System::timed(
-        "Debug".to_string(),
+        "Input".to_string(),
         |app, delta| {
 
             // world iterate over all transforms
@@ -64,13 +65,24 @@ fn main() {
 
                 obj_pos = *transform.position();
             };
+        },
+        Duration::from_millis(5),
+    ));
 
+    app.register_system(System::timed(
+        "Debug".to_string(),
+        |app, delta| {
             // Clear line and go up
-            for _ in 0..1 {
+            for _ in 0..2 {
                 print!("\x1b[1A\x1b[2K");
             }
 
             println!("FPS: {}, Frame Time: {:?}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
+
+            // Get only transform in world
+            for (id, transform) in app.world.query::<&Transform>().iter() {
+                println!("Transform: {:?}", transform.position());
+            }
 
         },
         Duration::from_millis(100),
@@ -94,7 +106,9 @@ fn main() {
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0),
-            )));
+            ),
+            // Rigidbody2D::new(),
+        ));
         },
     )); 
 

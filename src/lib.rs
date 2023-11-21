@@ -1,12 +1,12 @@
 use camera::Camera;
 use system::System;
-use ultraviolet::{Rotor3, Vec3};
+use ultraviolet::Vec3;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::EventLoop,
 };
 
-use crate::transform::Transform;
+use crate::{transform::Transform, camera::Projection};
 
 pub mod assets;
 pub mod camera;
@@ -17,10 +17,24 @@ pub mod system;
 pub mod texture;
 pub mod transform;
 pub mod window;
-
+pub mod physics;
 #[cfg(feature = "renderer_2d")]
 pub mod renderer_2d;
+#[cfg(feature = "renderer_2d")]
 pub use renderer_2d::Renderer2D;
+#[cfg(feature = "renderer_3d")]
+pub mod renderer_3d;
+#[cfg(feature = "renderer_3d")]
+pub use renderer_3d::Renderer3D;
+#[cfg(feature = "physics_2d")]
+pub mod physics_2d;
+#[cfg(feature = "physics_2d")]
+pub use physics_2d::Physics2D;
+
+#[cfg(feature = "physics_3d")]
+pub mod physics_3d;
+#[cfg(feature = "physics_3d")]
+pub use physics_3d::Physics3D;
 
 pub(crate) mod uniform;
 
@@ -33,6 +47,7 @@ pub struct App {
     pub resources: resources::ResourceManager,
     pub assets: assets::AssetManager,
     pub world: hecs::World,
+    pub physics: Option<Box<dyn physics::Physics>>,
     pub perf_stats: PerformanceStatistics,
 }
 
@@ -41,6 +56,7 @@ pub struct AppBuilder {
     systems: Vec<System>,
     event_loop: Option<EventLoop<()>>,
     renderer: Option<Box<dyn renderer::Renderer>>,
+    physics: Option<Box<dyn physics::Physics>>,
 }
 
 impl AppBuilder {
@@ -50,6 +66,7 @@ impl AppBuilder {
             systems: Vec::new(),
             event_loop: None,
             renderer: None,
+            physics: None,
         }
     }
 
@@ -144,12 +161,17 @@ impl AppBuilder {
                         }
                         _ => {}
                     }
+
                     app.input.update(&event).expect("Failed to update input");
                 }
                 Event::AboutToWait => {
                     app.window.winit_win.request_redraw();
                 }
                 _ => {}
+            }
+
+            if let Some(physics) = &mut app.physics {
+                physics.simulate(&mut app.world);
             }
         })?;
 
@@ -169,8 +191,8 @@ impl AppBuilder {
 
         let camera = Camera::new(
             // Transform::new(
-            //     Vec3::new(0.0, 1.0, 2.0),
-            //     Rotor3::from_euler_angles(0.0, 0.0, 180.0_f32.to_radians()),
+            //     Vec3::new(0.0, 0.0, 30.0),
+            //     Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
             //     Vec3::one(),
             // ),
             // camera::Projection::Perspective { 
@@ -178,14 +200,14 @@ impl AppBuilder {
             //     aspect: 1.7778,
             //     near: 0.1,
             //     far: 100.0,
-            // },
+            // } ,
 
             Transform::new(
                 Vec3::new(0.0, 0.0, 2.0),
                 Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
                 Vec3::one(),
             ),
-            camera::Projection::Orthographic {
+            Projection::Orthographic {
                 aspect: 1.7778,
                 height: 10.0,
                 near: 0.1,
@@ -208,6 +230,11 @@ impl AppBuilder {
             assets: assets::AssetManager::new(),
             world: hecs::World::new(),
             input: input::Input::new(),
+            physics: if let Some(physics) = self.physics.take() {
+                Some(physics)
+            } else {
+                None
+            },
             perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });
 
@@ -222,6 +249,12 @@ impl AppBuilder {
 
     pub fn with_renderer(mut self, renderer: Box<dyn renderer::Renderer>) -> Self {
         self.renderer = Some(renderer);
+
+        self
+    }
+
+    pub fn with_physics(mut self, physics: Box<dyn physics::Physics>) -> Self {
+        self.physics = Some(physics);
 
         self
     }
@@ -249,7 +282,7 @@ impl PerformanceStatistics {
     pub fn tick(&mut self) {
         if self.last_collection.elapsed() >= self.collection_duration {
             self.fps = self.frame_counter as f64 / self.collection_duration.as_secs_f64();
-            self.avg_frame_time = self.collection_duration / self.frame_counter as u32;
+            self.avg_frame_time = if self.frame_counter == 0 { std::time::Duration::from_secs(0) } else { self.collection_duration / self.frame_counter as u32 };
             self.frame_counter = 0;
             self.last_collection = std::time::Instant::now();
         }

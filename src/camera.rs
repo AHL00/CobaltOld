@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-use crate::transform::Transform;
+use crate::{transform::Transform, window::Window};
 
 pub struct Camera {
     pub transform: Transform,
@@ -48,8 +48,8 @@ const OPENGL_TO_WGPU: &ultraviolet::Mat4 = &ultraviolet::Mat4 {
         ultraviolet::Vec4 {
             x: 0.0,
             y: 0.0,
-            z: 0.5,
-            w: 0.5,
+            z: -1.0,
+            w: 0.0,
         },
         ultraviolet::Vec4 {
             x: 0.0,
@@ -84,7 +84,7 @@ impl Camera {
         let proj = self.projection_matrix();
 
         let camera_uniform = CameraUniform {
-            view_proj: *OPENGL_TO_WGPU * proj * view,
+            view_proj: proj * view,
         };
 
         window.queue.write_buffer(
@@ -121,7 +121,6 @@ impl Camera {
             ultraviolet::projection::orthographic_wgpu_dx(
                 left, right, bottom, top, near, far,
             )
-        
         },
         }
     }
@@ -144,6 +143,8 @@ impl Camera {
         );
 
         let mat = Self::cgmath_to_ultraviolet_mat4(cg_mat);
+
+        println!("View Matrix: {:?}", mat);
 
         mat
     }
@@ -176,6 +177,52 @@ impl Camera {
                     w: mat.w.w,
                 },
             ],
+        }
+    }
+
+    pub fn world_to_screen(&self, window: &Window, point: &ultraviolet::Vec3) -> ultraviolet::Vec3 {
+        match self.projection {
+            Projection::Perspective { .. } => {
+                // let view = self.view_matrix();
+                // let proj = self.projection_matrix();
+
+                // let view_proj = proj * view;
+
+                // let clip = view_proj * ultraviolet::Vec4::from(point.extend(1.0));
+
+                // let ndc = clip / clip.w;
+
+                // let window = ultraviolet::Vec3::new(
+                //     (ndc.x + 1.0) / 2.0 * crate::window::WINDOW_WIDTH as f32,
+                //     (1.0 - ndc.y) / 2.0 * crate::window::WINDOW_HEIGHT as f32,
+                //     ndc.z,
+                // );
+
+                // window
+                unimplemented!()
+            }
+            Projection::Orthographic { .. } => {
+                let view = self.view_matrix();
+                let proj = self.projection_matrix();
+
+                let view_proj = proj * view;
+
+                let clip = view_proj * ultraviolet::Vec4::new(point.x, point.y, point.z, 1.0);
+
+                let ndc = clip / clip.w;
+
+                println!("NDC: {:?}", ndc);
+                
+                let win_size = window.winit_win.inner_size();
+
+                let window = ultraviolet::Vec3::new(
+                    (ndc.x + 1.0) / 2.0 * win_size.width as f32,
+                    (1.0 - ndc.y) / 2.0 * win_size.height as f32,
+                    ndc.z,
+                );
+
+                window
+            }
         }
     }
 

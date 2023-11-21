@@ -1,11 +1,11 @@
-use ultraviolet::{Vec4, Mat4};
+use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::{Transform, self}, uniform::Uniform,
+    assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::Transform, uniform::Uniform
 };
 
-use super::{UvVertex, Renderable, UvColorVertex};
+use super::{UvVertex, Renderable};
 
 const RECT_VERTICES: &[UvVertex] = &[
     UvVertex {

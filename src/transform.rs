@@ -1,4 +1,3 @@
-
 pub struct Transform {
     position: ultraviolet::Vec3,
     rotation: ultraviolet::Rotor3,

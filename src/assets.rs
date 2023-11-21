@@ -58,7 +58,10 @@ impl<T> Clone for Asset<T> {
 
 impl<T> Drop for Asset<T> {
     fn drop(&mut self) {
-        self.ref_count_sender.send(RefCountMessage::Drop(self.id)).unwrap();
+        self.ref_count_sender.send(RefCountMessage::Drop(self.id)).unwrap_or_else(|err| {
+            log::error!("Failed to send drop message for asset {}", self.id);
+            log::error!("Error: {}", err);
+        });
     }
 }
 
