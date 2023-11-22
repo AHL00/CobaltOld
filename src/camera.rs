@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use wgpu::util::DeviceExt;
 
 use crate::{transform::Transform, window::Window};

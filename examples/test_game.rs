@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use cobalt::{system::System, AppBuilder, assets::Asset, texture::Texture, renderer_2d::renderables::Sprite, transform::Transform, physics_2d::rigidbody::Rigidbody2D};
+use cobalt::{
+    assets::Asset, physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::Sprite,
+    system::System, texture::Texture, transform::Transform, AppBuilder,
+};
 use ultraviolet::Vec3;
 
 struct GameState {
@@ -30,23 +33,71 @@ struct GameState {
 //     }
 // }
 
-fn main() {    
+fn main() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
 
     let mut app = AppBuilder::new()
-    .with_renderer(Box::new(cobalt::Renderer2D::new()))
-    .with_physics(Box::new(cobalt::Physics2D::new()));
+        .with_renderer(Box::new(cobalt::Renderer2D::new()))
+        .with_physics(Box::new(cobalt::Physics2D::new()));
+
+    app.register_system(System::startup("Add Scenes", |app, delta| {
+        app.scenes.add(
+            "test",
+            cobalt::scene::SceneGenerator::new(|scene, app| {
+                let test_texture = app
+                    .assets
+                    .create_asset(Texture::new(
+                        &app.window,
+                        include_bytes!(/*"texture.png"*/ "../images/logo.png"),
+                    ))
+                    .expect("Failed to create asset.");
+
+                scene.world.spawn((
+                    Sprite::new(&app, test_texture.clone()),
+                    Transform::new(
+                        Vec3::new(0.0, 25.0, 0.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(1.0, 1.0, 1.0),
+                    ),
+                    Rigidbody2D::new(),
+                ));
+
+                // Set camera
+                scene.camera = Some(cobalt::camera::Camera::new(
+                    Transform::new(
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(0.0, 0.0, 180_f32.to_radians()),
+                        Vec3::new(1.0, 1.0, 1.0),
+                    ),
+                    cobalt::camera::Projection::Orthographic {
+                        aspect: 16.0 / 9.0,
+                        height: 15.0,
+                        near: -1.0,
+                        far: 1.0,
+                    },
+                    &app.window,
+                ));
+            }),
+        );
+
+        app.scenes.load("test").expect("Failed to load scene.");
+    }));
 
     app.register_system(System::timed(
         "Input".to_string(),
         |app, delta| {
-
             // world iterate over all transforms
             let mut obj_pos = Vec3::zero();
 
-            for (id, transform) in app.scene.world.query_mut::<&mut Transform>() {
+            for (id, transform) in app
+                .scenes
+                .current_mut()
+                .unwrap()
+                .world
+                .query_mut::<&mut Transform>()
+            {
                 if app.input.is_key_down(cobalt::input::Key::KeyW) {
                     transform.position_mut().y += 10.0 * delta.as_secs_f32();
                 }
@@ -64,18 +115,30 @@ fn main() {
                 }
 
                 obj_pos = *transform.position();
-            };
+            }
 
             if app.input.is_key_clicked(cobalt::input::Key::Space) {
                 // Toggle rigidbody
-                for (id, rigidbody) in app.scene.world.query_mut::<&mut Rigidbody2D>() {
+                for (id, rigidbody) in app
+                    .scenes
+                    .current_mut()
+                    .unwrap()
+                    .world
+                    .query_mut::<&mut Rigidbody2D>()
+                {
                     rigidbody.enabled = !rigidbody.enabled;
                 }
             }
 
             if app.input.is_key_clicked(cobalt::input::Key::KeyR) {
                 // Reset position
-                for (id, (transform, rigidbody)) in app.scene.world.query_mut::<(&mut Transform, &mut Rigidbody2D)>() {
+                for (id, (transform, rigidbody)) in app
+                    .scenes
+                    .current_mut()
+                    .unwrap()
+                    .world
+                    .query_mut::<(&mut Transform, &mut Rigidbody2D)>()
+                {
                     *transform.position_mut() = Vec3::zero();
                     rigidbody.reset();
                 }
@@ -92,59 +155,25 @@ fn main() {
                 print!("\x1b[1A\x1b[2K");
             }
 
-            println!("FPS: {}, Frame Time: {:?}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
+            println!(
+                "FPS: {}, Frame Time: {:?}",
+                app.perf_stats.fps, app.perf_stats.avg_frame_time
+            );
 
             // Get only transform in world
-            for (id, transform) in app.scene.world.query::<&Transform>().iter() {
+            for (id, transform) in app
+                .scenes
+                .current()
+                .unwrap()
+                .world
+                .query::<&Transform>()
+                .iter()
+            {
                 println!("Transform: {:?}", transform.position());
             }
         },
         Duration::from_millis(100),
     ));
-
-    app.register_system(System::startup(
-        "Res Asset test".to_string(),
-        |app, delta| {
-            let asset = app.assets.create_asset("test".to_string()).expect("Failed to create asset.");
-            
-            app.resources.create_resource(GameState {
-                counter: 0,
-                asset,
-            }).expect("Failed to create resource.");
-
-            app.scene.world.spawn((1u32, "test".to_string()));
-
-            let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!(/*"texture.png"*/ "../images/logo.png"))).expect("Failed to create asset.");
-            
-            app.scene.world.spawn((Sprite::new(&app, test_texture.clone()), Transform::new(
-                Vec3::new(0.0, 25.0, 0.0),
-                Vec3::new(0.0, 0.0, 0.0),
-                Vec3::new(1.0, 1.0, 1.0),
-            ),
-            Rigidbody2D::new(),
-        ));
-        },
-    )); 
-
-    app.register_system(System::timed("Res test", |app, delta| {
-        let res = app.resources.get_resource_mut::<GameState>().unwrap();
-        res.counter += 1;
-
-        // Create test asset
-        let ass = app.assets.create_asset("test".to_string()).expect("Failed to create asset.");
-
-        let ass2 = ass.clone();
-
-        res.asset = ass2;
-
-        // println!("Asset: {}", *ass);
-
-        for (id, (i, string)) in app.scene.world.query_mut::<(&mut u32, &String)>() {
-            *i += 1;
-
-            // println!("Counter: {}, str: {}", i, string);
-        }
-    }, Duration::from_millis(1000)));
 
     let res = app.run();
 

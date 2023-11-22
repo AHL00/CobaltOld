@@ -1,4 +1,5 @@
 use camera::Camera;
+use scene::ScenesManager;
 use system::System;
 use ultraviolet::Vec3;
 use winit::{
@@ -46,7 +47,7 @@ pub struct App {
     pub input: input::Input,
     pub resources: resources::ResourceManager,
     pub assets: assets::AssetManager,
-    pub scene: scene::Scene,
+    pub scenes: scene::ScenesManager,
     pub physics: Option<Box<dyn physics::Physics>>,
     pub perf_stats: PerformanceStatistics,
 }
@@ -76,6 +77,11 @@ impl AppBuilder {
         self.build()?;
 
         let mut app = self.app.unwrap();
+
+        // The scene manager takes a mutable pointer to the app to pass it along to the scene generator.
+        // Read more in the scene module.
+        // TODO: Find a better way to do this.
+        app.scenes.app_ref = &mut app as *mut App;
 
         // Reset the last_run time for all systems
         for system in &mut self.systems {
@@ -133,21 +139,25 @@ impl AppBuilder {
                             app.assets.update_ref_counts();
 
                             // Update camera buffer
-                            if let Some(camera) = &mut app.scene.camera {
-                                camera.update_uniform(&app.window);
+                            if let Some(scene) = app.scenes.current_mut() {
+                                if let Some(camera) = &mut scene.camera {
+                                    camera.update_uniform(&app.window);
 
-                                // Render
-                                let res = app.renderer.render(
-                                    &mut app.window,
-                                    camera,
-                                    &mut app.scene.world,
-                                );
+                                    // Render
+                                    let res = app.renderer.render(
+                                        &mut app.window,
+                                        camera,
+                                        &mut scene.world,
+                                    );
 
-                                if let Err(e) = res {
-                                    log::error!("Failed to render: {}", e);
+                                    if let Err(e) = res {
+                                        log::error!("Failed to render: {}", e);
+                                    }
+                                } else {
+                                    log::error!("No camera in scene!");
                                 }
                             } else {
-                                log::error!("No camera in scene!");
+                                log::error!("No scene loaded!");
                             }
 
                             app.perf_stats.tick();
@@ -177,7 +187,9 @@ impl AppBuilder {
             }
 
             if let Some(physics) = &mut app.physics {
-                physics.simulate(&mut app.scene.world);
+                if let Some(scene) = app.scenes.current_mut() {
+                    physics.simulate(&mut scene.world);
+                }
             }
         })?;
 
@@ -227,16 +239,12 @@ impl AppBuilder {
             return Err(anyhow::anyhow!("No renderer specified."));
         }
 
-        let mut scene = scene::Scene::new();
-
-        scene.camera = Some(camera);
-
         self.app = Some(App {
             window,
             renderer: self.renderer.take().unwrap(),
             resources: resources::ResourceManager::new(),
             assets: assets::AssetManager::new(),
-            scene,
+            scenes: scene::ScenesManager::new(),
             input: input::Input::new(),
             physics: if let Some(physics) = self.physics.take() {
                 Some(physics)

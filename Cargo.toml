@@ -20,7 +20,7 @@ ahash = "0.8.6"
 anyhow = "1.0.75"
 bytemuck = {version = "1.13.1", features = ["derive"]}
 cgmath = "0.18.0"
-hecs = {version = "0.10.3", features = ["serde"]}
+hecs = {version = "0.10.3", features = ["row-serialize"]}
 image = "0.24.7"
 log = "0.4.19"
 pollster = "0.3.0"
