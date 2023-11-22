@@ -6,18 +6,20 @@ use winit::{
     event_loop::EventLoop,
 };
 
-use crate::{transform::Transform, camera::Projection};
+use crate::{camera::Projection, transform::Transform};
 
 pub mod assets;
 pub mod camera;
 pub mod input;
+pub mod physics;
 pub mod renderer;
 pub mod resources;
+pub mod scene;
 pub mod system;
 pub mod texture;
 pub mod transform;
 pub mod window;
-pub mod physics;
+
 #[cfg(feature = "renderer_2d")]
 pub mod renderer_2d;
 #[cfg(feature = "renderer_2d")]
@@ -38,15 +40,13 @@ pub use physics_3d::Physics3D;
 
 pub(crate) mod uniform;
 
-
 pub struct App {
     pub window: window::Window,
-    pub camera: camera::Camera,
     pub renderer: Box<dyn renderer::Renderer>,
     pub input: input::Input,
     pub resources: resources::ResourceManager,
     pub assets: assets::AssetManager,
-    pub world: hecs::World,
+    pub scene: scene::Scene,
     pub physics: Option<Box<dyn physics::Physics>>,
     pub perf_stats: PerformanceStatistics,
 }
@@ -133,15 +133,21 @@ impl AppBuilder {
                             app.assets.update_ref_counts();
 
                             // Update camera buffer
-                            app.camera.update_uniform(&app.window);
+                            if let Some(camera) = &mut app.scene.camera {
+                                camera.update_uniform(&app.window);
 
-                            // Render
-                            let res =
-                                app.renderer
-                                    .render(&mut app.window, &app.camera, &mut app.world);
+                                // Render
+                                let res = app.renderer.render(
+                                    &mut app.window,
+                                    camera,
+                                    &mut app.scene.world,
+                                );
 
-                            if let Err(e) = res {
-                                log::error!("Failed to render: {}", e);
+                                if let Err(e) = res {
+                                    log::error!("Failed to render: {}", e);
+                                }
+                            } else {
+                                log::error!("No camera in scene!");
                             }
 
                             app.perf_stats.tick();
@@ -171,7 +177,7 @@ impl AppBuilder {
             }
 
             if let Some(physics) = &mut app.physics {
-                physics.simulate(&mut app.world);
+                physics.simulate(&mut app.scene.world);
             }
         })?;
 
@@ -195,13 +201,12 @@ impl AppBuilder {
             //     Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
             //     Vec3::one(),
             // ),
-            // camera::Projection::Perspective { 
+            // camera::Projection::Perspective {
             //     fov: 70.0,
             //     aspect: 1.7778,
             //     near: 0.1,
             //     far: 100.0,
             // } ,
-
             Transform::new(
                 Vec3::new(0.0, 0.0, 2.0),
                 Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
@@ -222,13 +227,16 @@ impl AppBuilder {
             return Err(anyhow::anyhow!("No renderer specified."));
         }
 
+        let mut scene = scene::Scene::new();
+
+        scene.camera = Some(camera);
+
         self.app = Some(App {
             window,
-            camera,
             renderer: self.renderer.take().unwrap(),
             resources: resources::ResourceManager::new(),
             assets: assets::AssetManager::new(),
-            world: hecs::World::new(),
+            scene,
             input: input::Input::new(),
             physics: if let Some(physics) = self.physics.take() {
                 Some(physics)
@@ -282,7 +290,11 @@ impl PerformanceStatistics {
     pub fn tick(&mut self) {
         if self.last_collection.elapsed() >= self.collection_duration {
             self.fps = self.frame_counter as f64 / self.collection_duration.as_secs_f64();
-            self.avg_frame_time = if self.frame_counter == 0 { std::time::Duration::from_secs(0) } else { self.collection_duration / self.frame_counter as u32 };
+            self.avg_frame_time = if self.frame_counter == 0 {
+                std::time::Duration::from_secs(0)
+            } else {
+                self.collection_duration / self.frame_counter as u32
+            };
             self.frame_counter = 0;
             self.last_collection = std::time::Instant::now();
         }

@@ -46,7 +46,7 @@ fn main() {
             // world iterate over all transforms
             let mut obj_pos = Vec3::zero();
 
-            for (id, transform) in app.world.query_mut::<&mut Transform>() {
+            for (id, transform) in app.scene.world.query_mut::<&mut Transform>() {
                 if app.input.is_key_down(cobalt::input::Key::KeyW) {
                     transform.position_mut().y += 10.0 * delta.as_secs_f32();
                 }
@@ -68,14 +68,14 @@ fn main() {
 
             if app.input.is_key_clicked(cobalt::input::Key::Space) {
                 // Toggle rigidbody
-                for (id, rigidbody) in app.world.query_mut::<&mut Rigidbody2D>() {
+                for (id, rigidbody) in app.scene.world.query_mut::<&mut Rigidbody2D>() {
                     rigidbody.enabled = !rigidbody.enabled;
                 }
             }
 
             if app.input.is_key_clicked(cobalt::input::Key::KeyR) {
                 // Reset position
-                for (id, (transform, rigidbody)) in app.world.query_mut::<(&mut Transform, &mut Rigidbody2D)>() {
+                for (id, (transform, rigidbody)) in app.scene.world.query_mut::<(&mut Transform, &mut Rigidbody2D)>() {
                     *transform.position_mut() = Vec3::zero();
                     rigidbody.reset();
                 }
@@ -88,19 +88,16 @@ fn main() {
         "Debug".to_string(),
         |app, delta| {
             // Clear line and go up
-            for _ in 0..3 {
+            for _ in 0..2 {
                 print!("\x1b[1A\x1b[2K");
             }
 
             println!("FPS: {}, Frame Time: {:?}", app.perf_stats.fps, app.perf_stats.avg_frame_time);
 
             // Get only transform in world
-            for (id, transform) in app.world.query::<&Transform>().iter() {
+            for (id, transform) in app.scene.world.query::<&Transform>().iter() {
                 println!("Transform: {:?}", transform.position());
-                println!("Screen: {:?}", app.camera.world_to_screen(&app.window, transform.position()));
             }
-
-
         },
         Duration::from_millis(100),
     ));
@@ -115,11 +112,11 @@ fn main() {
                 asset,
             }).expect("Failed to create resource.");
 
-            app.world.spawn((1u32, "test".to_string()));
+            app.scene.world.spawn((1u32, "test".to_string()));
 
             let test_texture = app.assets.create_asset(Texture::new(&app.window, include_bytes!(/*"texture.png"*/ "../images/logo.png"))).expect("Failed to create asset.");
             
-            app.world.spawn((Sprite::new(&app, test_texture.clone()), Transform::new(
+            app.scene.world.spawn((Sprite::new(&app, test_texture.clone()), Transform::new(
                 Vec3::new(0.0, 25.0, 0.0),
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(1.0, 1.0, 1.0),
@@ -142,7 +139,7 @@ fn main() {
 
         // println!("Asset: {}", *ass);
 
-        for (id, (i, string)) in app.world.query_mut::<(&mut u32, &String)>() {
+        for (id, (i, string)) in app.scene.world.query_mut::<(&mut u32, &String)>() {
             *i += 1;
 
             // println!("Counter: {}, str: {}", i, string);
