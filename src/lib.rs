@@ -1,14 +1,3 @@
-use camera::Camera;
-use scene::ScenesManager;
-use system::System;
-use ultraviolet::Vec3;
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
-};
-
-use crate::{camera::Projection, transform::Transform};
-
 pub mod assets;
 pub mod camera;
 pub mod input;
@@ -54,13 +43,20 @@ pub struct App {
 
 pub struct AppBuilder {
     app: Option<App>,
-    systems: Vec<System>,
+    systems: Vec<system::System>,
     renderer: Option<Box<dyn renderer::Renderer>>,
     physics: Option<Box<dyn physics::Physics>>,
 }
 
+impl Default for AppBuilder {
+    fn default() -> Self {
+        Self::new()
+        .with_physics(Box::new(Physics2D::new()))
+        .with_renderer(Box::new(Renderer2D::new()))
+    }
+}
+
 impl AppBuilder {
-    
     pub fn new() -> AppBuilder {
         AppBuilder {
             app: None,
@@ -114,20 +110,19 @@ impl AppBuilder {
         
         // Remove all the startup systems
         self.systems.retain(|s| {
-            if let system::SystemType::Startup = s.system_type {
-                false
-            } else {
-                true
-            }
+            !matches!(s.system_type, system::SystemType::Startup)
         });
         
         // Run the loop
         event_loop.run(|event, elwt| {
+            use winit::event::{Event, WindowEvent};
+
             match event {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
                             // Cleanup
+                            self.run_event_system(system::EventCallbackType::ShutDown, &mut app);
                             
                             elwt.exit();
                         }
@@ -187,6 +182,10 @@ impl AppBuilder {
                         }
                         WindowEvent::ScaleFactorChanged { .. } => {
                             let res = app.window.resize(app.window.winit_win.inner_size());
+
+                            // Event: WindowResize
+                            self.run_event_system(system::EventCallbackType::WindowResize, &mut app);
+
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
@@ -212,8 +211,8 @@ impl AppBuilder {
         Ok(())
     }
     
-    fn build(&mut self) -> anyhow::Result<EventLoop<()>> {
-        let event_loop = EventLoop::new()?;
+    fn build(&mut self) -> anyhow::Result<winit::event_loop::EventLoop<()>> {
+        let event_loop = winit::event_loop::EventLoop::new()?;
         
         let window = window::Window::create(&event_loop)?;
 
@@ -241,7 +240,7 @@ impl AppBuilder {
         Ok(event_loop)
     }
 
-    pub fn register_system(&mut self, system: System) {
+    pub fn register_system(&mut self, system: system::System) {
         if !self.systems.iter().any(|s| s.uuid == system.uuid) {
             self.systems.push(system);
         }

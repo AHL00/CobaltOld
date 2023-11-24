@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use wgpu::util::DeviceExt;
 
 use crate::{transform::Transform, window::Window};
@@ -34,35 +33,6 @@ pub enum Projection {
 struct CameraUniform {
     view_proj: ultraviolet::Mat4,
 }
-
-const OPENGL_TO_WGPU: &ultraviolet::Mat4 = &ultraviolet::Mat4 {
-    cols: [
-        ultraviolet::Vec4 {
-            x: 1.0,
-            y: 0.0,
-            z: 0.0,
-            w: 0.0,
-        },
-        ultraviolet::Vec4 {
-            x: 0.0,
-            y: 1.0,
-            z: 0.0,
-            w: 0.0,
-        },
-        ultraviolet::Vec4 {
-            x: 0.0,
-            y: 0.0,
-            z: -1.0,
-            w: 0.0,
-        },
-        ultraviolet::Vec4 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0,
-        },
-    ],
-};
 
 impl Camera {
     pub(crate) fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -205,13 +175,11 @@ impl Camera {
 
         let win_size = window.winit_win.inner_size();
 
-        let window = ultraviolet::Vec3::new(
+        ultraviolet::Vec3::new(
             (ndc.x + 1.0) / 2.0 * win_size.width as f32,
             (1.0 - ndc.y) / 2.0 * win_size.height as f32,
             ndc.z,
-        );
-
-        window
+        )
     }
 
     pub fn new(

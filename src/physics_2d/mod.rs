@@ -43,7 +43,7 @@ impl Physics for Physics2D {
         let delta = delta.as_secs_f32();
 
         for (entity, (transform, rigidbody)) in world
-            .query::<(&mut crate::Transform, &mut rigidbody::Rigidbody2D)>()
+            .query::<(&mut Transform, &mut rigidbody::Rigidbody2D)>()
             .iter()
         {
             rigidbody.simulate(delta, transform, &self.constants);

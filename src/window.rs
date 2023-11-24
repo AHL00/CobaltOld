@@ -17,7 +17,7 @@ impl Window {
             .with_fullscreen(None)
             .with_decorations(true)
             .with_resizable(true)
-            .build(&event_loop)
+            .build(event_loop)
             .unwrap();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -71,7 +71,7 @@ impl Window {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: present_mode,
+            present_mode,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };

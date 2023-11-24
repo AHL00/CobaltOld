@@ -5,6 +5,7 @@ use crate::App;
 #[derive(PartialEq)]
 pub enum EventCallbackType {
     WindowResize,
+    ShutDown,
 }
 
 pub(crate) enum SystemType {
