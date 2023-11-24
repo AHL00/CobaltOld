@@ -14,7 +14,10 @@ impl Window {
         let winit_win = winit::window::WindowBuilder::new()
             .with_title("Cobalt")
             .with_inner_size(winit::dpi::LogicalSize::new(1280, 720))
-            .build(&event_loop)
+            .with_fullscreen(None)
+            .with_decorations(true)
+            .with_resizable(true)
+            .build(event_loop)
             .unwrap();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -68,7 +71,7 @@ impl Window {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: present_mode,
+            present_mode,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };

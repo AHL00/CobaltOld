@@ -1,14 +1,3 @@
-use camera::Camera;
-use scene::ScenesManager;
-use system::System;
-use ultraviolet::Vec3;
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
-};
-
-use crate::{camera::Projection, transform::Transform};
-
 pub mod assets;
 pub mod camera;
 pub mod input;
@@ -54,10 +43,17 @@ pub struct App {
 
 pub struct AppBuilder {
     app: Option<App>,
-    systems: Vec<System>,
-    event_loop: Option<EventLoop<()>>,
+    systems: Vec<system::System>,
     renderer: Option<Box<dyn renderer::Renderer>>,
     physics: Option<Box<dyn physics::Physics>>,
+}
+
+impl Default for AppBuilder {
+    fn default() -> Self {
+        Self::new()
+        .with_physics(Box::new(Physics2D::new()))
+        .with_renderer(Box::new(Renderer2D::new()))
+    }
 }
 
 impl AppBuilder {
@@ -65,19 +61,33 @@ impl AppBuilder {
         AppBuilder {
             app: None,
             systems: Vec::new(),
-            event_loop: None,
             renderer: None,
             physics: None,
         }
     }
 
+    fn run_event_system(&mut self, event: crate::system::EventCallbackType, app: &mut App) {
+        // Iterate over all systems
+        // Find a system where the system_type is Event(event)
+        // Run that system
+
+        for system in &mut self.systems {
+            if let system::SystemType::EventCallback(e) = &system.system_type {
+                if *e == event {
+                    (system.update)(app, &system.last_run.elapsed());
+                }
+            }
+        }
+    }
+    
     pub fn run(mut self) -> anyhow::Result<()> {
         log::info!("Cobalt v{}", env!("CARGO_PKG_VERSION"));
         log::info!("Starting...");
-        self.build()?;
 
-        let mut app = self.app.unwrap();
-
+        let event_loop = self.build()?;
+        
+        let mut app = self.app.take().expect("App not initialized.");
+        
         // The scene manager takes a mutable pointer to the app to pass it along to the scene generator.
         // Read more in the scene module.
         // TODO: Find a better way to do this.
@@ -90,33 +100,33 @@ impl AppBuilder {
         for system in &mut self.systems {
             system.last_run = std::time::Instant::now();
         }
-
-        let event_loop = self.event_loop.unwrap();
-
+        
+        
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-
+        
         // Run all the startup systems
         for system in &mut self.systems {
             if let system::SystemType::Startup = system.system_type {
                 (system.update)(&mut app, &system.last_run.elapsed());
             }
         }
-
+        
         // Remove all the startup systems
         self.systems.retain(|s| {
-            if let system::SystemType::Startup = s.system_type {
-                false
-            } else {
-                true
-            }
+            !matches!(s.system_type, system::SystemType::Startup)
         });
-
+        
         // Run the loop
-        event_loop.run(move |event, elwt| {
+        event_loop.run(|event, elwt| {
+            use winit::event::{Event, WindowEvent};
+
             match event {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
+                            // Cleanup
+                            self.run_event_system(system::EventCallbackType::ShutDown, &mut app);
+                            
                             elwt.exit();
 
                             // Drop all assets
@@ -139,14 +149,14 @@ impl AppBuilder {
                                     _ => {}
                                 }
                             }
-
+                            
                             app.assets.update_ref_counts();
-
+                            
                             // Update camera buffer
                             if let Some(scene) = app.scenes.current_mut() {
                                 if let Some(camera) = &mut scene.camera {
                                     camera.update_uniform(&app.window);
-
+                                    
                                     // Render
                                     let res = app.renderer.render(
                                         &mut app.window,
@@ -169,6 +179,9 @@ impl AppBuilder {
                         WindowEvent::Resized(s) => {
                             let res = app.window.resize(s);
 
+                            // Event: WindowResize
+                            self.run_event_system(system::EventCallbackType::WindowResize, &mut app);
+                            
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
@@ -177,6 +190,10 @@ impl AppBuilder {
                         }
                         WindowEvent::ScaleFactorChanged { .. } => {
                             let res = app.window.resize(app.window.winit_win.inner_size());
+
+                            // Event: WindowResize
+                            self.run_event_system(system::EventCallbackType::WindowResize, &mut app);
+
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
@@ -198,46 +215,14 @@ impl AppBuilder {
                 }
             }
         })?;
-
+        
         Ok(())
     }
-
-    fn build(&mut self) -> anyhow::Result<()> {
-        self.event_loop = Some(EventLoop::new()?);
-
-        let window = if let Some(event_loop) = &self.event_loop {
-            window::Window::create(event_loop)?
-        } else {
-            return Err(anyhow::anyhow!(
-                "Event loop not initialized, could not create window."
-            ));
-        };
-
-        let camera = Camera::new(
-            // Transform::new(
-            //     Vec3::new(0.0, 0.0, 30.0),
-            //     Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
-            //     Vec3::one(),
-            // ),
-            // camera::Projection::Perspective {
-            //     fov: 70.0,
-            //     aspect: 1.7778,
-            //     near: 0.1,
-            //     far: 100.0,
-            // } ,
-            Transform::new(
-                Vec3::new(0.0, 0.0, 2.0),
-                Vec3::new(0.0, 0.0, 180.0_f32.to_radians()),
-                Vec3::one(),
-            ),
-            Projection::Orthographic {
-                aspect: 1.7778,
-                height: 25.0,
-                near: 0.1,
-                far: 100.0,
-            },
-            &window,
-        );
+    
+    fn build(&mut self) -> anyhow::Result<winit::event_loop::EventLoop<()>> {
+        let event_loop = winit::event_loop::EventLoop::new()?;
+        
+        let window = window::Window::create(&event_loop)?;
 
         log::info!("Window created.");
 
@@ -260,10 +245,10 @@ impl AppBuilder {
             perf_stats: PerformanceStatistics::new(std::time::Duration::from_millis(500)),
         });
 
-        Ok(())
+        Ok(event_loop)
     }
 
-    pub fn register_system(&mut self, system: System) {
+    pub fn register_system(&mut self, system: system::System) {
         if !self.systems.iter().any(|s| s.uuid == system.uuid) {
             self.systems.push(system);
         }

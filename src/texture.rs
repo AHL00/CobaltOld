@@ -1,6 +1,4 @@
-use std::ops::{Deref, DerefMut};
-
-use crate::{window::Window, App};
+use crate::window::Window;
 
 pub struct Texture {
     pub(crate) texture: wgpu::Texture,
@@ -9,33 +7,6 @@ pub struct Texture {
     pub(crate) bind_group: wgpu::BindGroup,
     pub(crate) size: wgpu::Extent3d,
 }
-
-struct RawPointer<T> {
-    ptr: *mut T,
-}
-
-impl<T> RawPointer<T> {
-    fn new(t: &mut T) -> Self {
-        Self { ptr: t as *mut T }
-    }
-}
-
-impl<T> Deref for RawPointer<T> {
-    type Target = *mut T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ptr
-    }
-}
-
-impl<T> DerefMut for RawPointer<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ptr
-    }
-}
-
-unsafe impl<T> Send for RawPointer<T> {}
-unsafe impl<T> Sync for RawPointer<T> {}
 
 impl Texture {
     pub(crate) fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

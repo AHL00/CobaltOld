@@ -1,4 +1,4 @@
-use std::{time::Instant, collections::VecDeque};
+use std::time::Instant;
 
 use ultraviolet::Vec2;
 
