@@ -41,6 +41,21 @@ fn main() {
     let mut app = AppBuilder::new()
         .with_renderer(Box::new(cobalt::Renderer2D::new()))
         .with_physics(Box::new(cobalt::Physics2D::new()));
+    
+    app.register_system(System::event_callback(
+        "Window Resize",
+        |app, delta| {
+            let size = app.window.winit_win.inner_size();
+            
+            // Change camera aspect ratio
+            if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                if let cobalt::camera::Projection::Orthographic { aspect, .. } = &mut camera.projection {
+                    *aspect = size.width as f32 / size.height as f32;
+                }
+            }
+        },
+        cobalt::system::EventCallbackType::WindowResize,
+    ));
 
     app.register_system(System::startup("Add Scenes", |app, delta| {
         app.scenes.add(

@@ -2,10 +2,16 @@ use std::time::{Duration, Instant};
 
 use crate::App;
 
+#[derive(PartialEq)]
+pub enum EventCallbackType {
+    WindowResize,
+}
+
 pub(crate) enum SystemType {
     Update,
     Startup,
-    Timed(Duration)
+    Timed(Duration),
+    EventCallback(EventCallbackType),
 }
 
 pub struct System {
@@ -26,6 +32,18 @@ impl System {
             name: name.into(),
             update: Box::new(run),
             system_type: SystemType::Startup,
+            uuid: uuid::Uuid::new_v4(),
+            last_run: Instant::now(),
+        }
+    }
+
+    pub fn event_callback<T, S>(name: S, run: T, event_type: EventCallbackType) -> System 
+    where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
+    {
+        System {
+            name: name.into(),
+            update: Box::new(run),
+            system_type: SystemType::EventCallback(event_type),
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
         }
