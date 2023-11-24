@@ -2,7 +2,7 @@ use ultraviolet::Mat4;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::Transform, uniform::Uniform
+    assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::Transform, uniform::Uniform, Renderer2D
 };
 
 use super::{UvVertex, Renderable};
@@ -155,7 +155,13 @@ impl<'a> Renderable<'a> for Sprite {
                         // Requires Features::CONSERVATIVE_RASTERIZATION
                         conservative: false,
                     },
-                    depth_stencil: None,
+                    depth_stencil: Some(wgpu::DepthStencilState {
+                        format: Renderer2D::DEPTH_FORMAT,
+                        depth_write_enabled: true,
+                        depth_compare: wgpu::CompareFunction::Less,
+                        stencil: wgpu::StencilState::default(),
+                        bias: wgpu::DepthBiasState::default(),
+                    }),
                     multisample: wgpu::MultisampleState {
                         count: 1,
                         mask: !0,

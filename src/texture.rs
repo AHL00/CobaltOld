@@ -1,38 +1,74 @@
-use crate::App;
+use std::ops::{Deref, DerefMut};
+
+use crate::{window::Window, App};
 
 pub struct Texture {
     pub(crate) texture: wgpu::Texture,
     pub(crate) view: wgpu::TextureView,
     pub(crate) sampler: wgpu::Sampler,
     pub(crate) bind_group: wgpu::BindGroup,
+    pub(crate) size: wgpu::Extent3d,
 }
+
+struct RawPointer<T> {
+    ptr: *mut T,
+}
+
+impl<T> RawPointer<T> {
+    fn new(t: &mut T) -> Self {
+        Self { ptr: t as *mut T }
+    }
+}
+
+impl<T> Deref for RawPointer<T> {
+    type Target = *mut T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ptr
+    }
+}
+
+impl<T> DerefMut for RawPointer<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.ptr
+    }
+}
+
+unsafe impl<T> Send for RawPointer<T> {}
+unsafe impl<T> Sync for RawPointer<T> {}
 
 impl Texture {
     pub(crate) fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                // This should match the filterable field of the
-                // corresponding Texture entry above.
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    // This should match the filterable field of the
+                    // corresponding Texture entry above.
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
             label: Some("texture_bind_group_layout"),
         })
     }
 
-    pub fn new(window: &crate::window::Window, bytes: &[u8]) -> Self {
+    pub fn save(&self, window: &Window) -> anyhow::Result<()> {
+        unimplemented!("Saving textures is not yet implemented")
+    }
+
+    pub fn load(window: &crate::window::Window, bytes: &[u8]) -> Self {
         let img = image::load_from_memory(bytes).expect("Failed to load texture");
         let rgba = img.as_rgba8().expect("Failed to convert texture to rgba");
 
@@ -49,7 +85,10 @@ impl Texture {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb, wgpu::TextureFormat::Rgba8Unorm],
+            view_formats: &[
+                wgpu::TextureFormat::Rgba8UnormSrgb,
+                wgpu::TextureFormat::Rgba8Unorm,
+            ],
             usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
         });
 
@@ -81,8 +120,7 @@ impl Texture {
             ..Default::default()
         });
 
-        let bind_group_layout =
-            Self::get_bind_group_layout(&window.device);
+        let bind_group_layout = Self::get_bind_group_layout(&window.device);
 
         let bind_group = window.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Texture Bind Group"),
@@ -104,6 +142,7 @@ impl Texture {
             view,
             sampler,
             bind_group,
+            size,
         }
     }
 }

@@ -83,6 +83,9 @@ impl AppBuilder {
         // TODO: Find a better way to do this.
         app.scenes.app_ref = &mut app as *mut App;
 
+        // Initialize the renderer
+        app.renderer.as_mut().initialize(&app.window);
+
         // Reset the last_run time for all systems
         for system in &mut self.systems {
             system.last_run = std::time::Instant::now();
@@ -114,9 +117,10 @@ impl AppBuilder {
                 Event::WindowEvent { event, .. } => {
                     match event {
                         WindowEvent::CloseRequested => {
-                            // Cleanup
-
                             elwt.exit();
+
+                            // Drop all assets
+                            app.assets.drop_all();
                         }
                         WindowEvent::RedrawRequested => {
                             // Update and run systems
@@ -168,6 +172,8 @@ impl AppBuilder {
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
+
+                            app.renderer.resize_callback(&app.window);
                         }
                         WindowEvent::ScaleFactorChanged { .. } => {
                             let res = app.window.resize(app.window.winit_win.inner_size());

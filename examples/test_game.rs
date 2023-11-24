@@ -46,16 +46,16 @@ fn main() {
         app.scenes.add(
             "test",
             cobalt::scene::SceneGenerator::new(|scene, app| {
-                let test_texture = app
+                let sprite_texture = app
                     .assets
-                    .create_asset(Texture::new(
+                    .create_asset(Texture::load(
                         &app.window,
                         include_bytes!(/*"texture.png"*/ "../images/logo.png"),
                     ))
                     .expect("Failed to create asset.");
 
                 scene.world.spawn((
-                    Sprite::new(&app, test_texture.clone()),
+                    Sprite::new(&app, sprite_texture.clone()),
                     Transform::new(
                         Vec3::new(0.0, 25.0, 0.0),
                         Vec3::new(0.0, 0.0, 0.0),
@@ -64,18 +64,35 @@ fn main() {
                     Rigidbody2D::new(),
                 ));
 
+                let bg_texture = app
+                    .assets
+                    .create_asset(Texture::load(
+                        &app.window,
+                        include_bytes!(/*"texture.png"*/ "texture.png"),
+                    ))
+                    .expect("Failed to create asset.");
+
+                scene.world.spawn((
+                    Sprite::new(&app, bg_texture.clone()),
+                    Transform::new(
+                        Vec3::new(0.0, 0.0, -1.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(15.0 * (16.0 / 9.0), 15.0, 1.0),
+                    ),
+                ));
+
                 // Set camera
                 scene.camera = Some(cobalt::camera::Camera::new(
                     Transform::new(
-                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(0.0, 0.0, 5.0),
                         Vec3::new(0.0, 0.0, 180_f32.to_radians()),
                         Vec3::new(1.0, 1.0, 1.0),
                     ),
                     cobalt::camera::Projection::Orthographic {
                         aspect: 16.0 / 9.0,
                         height: 15.0,
-                        near: -1.0,
-                        far: 1.0,
+                        near: -0.0,
+                        far: 10.0,
                     },
                     &app.window,
                 ));
@@ -91,12 +108,12 @@ fn main() {
             // world iterate over all transforms
             let mut obj_pos = Vec3::zero();
 
-            for (id, transform) in app
+            for (id, (transform, rigidbody)) in app
                 .scenes
                 .current_mut()
                 .unwrap()
                 .world
-                .query_mut::<&mut Transform>()
+                .query_mut::<(&mut Transform, &Rigidbody2D)>()
             {
                 if app.input.is_key_down(cobalt::input::Key::KeyW) {
                     transform.position_mut().y += 10.0 * delta.as_secs_f32();
@@ -151,7 +168,7 @@ fn main() {
         "Debug".to_string(),
         |app, delta| {
             // Clear line and go up
-            for _ in 0..2 {
+            for _ in 0..1 {
                 print!("\x1b[1A\x1b[2K");
             }
 
@@ -159,18 +176,6 @@ fn main() {
                 "FPS: {}, Frame Time: {:?}",
                 app.perf_stats.fps, app.perf_stats.avg_frame_time
             );
-
-            // Get only transform in world
-            for (id, transform) in app
-                .scenes
-                .current()
-                .unwrap()
-                .world
-                .query::<&Transform>()
-                .iter()
-            {
-                println!("Transform: {:?}", transform.position());
-            }
         },
         Duration::from_millis(100),
     ));
