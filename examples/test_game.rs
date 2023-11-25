@@ -1,8 +1,13 @@
 use std::time::Duration;
 
 use cobalt::{
-    assets::Asset, physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::{Sprite, TranslucentSprite},
-    system::System, texture::Texture, transform::Transform, AppBuilder,
+    assets::Asset,
+    physics_2d::rigidbody::Rigidbody2D,
+    renderer_2d::renderables::{Sprite, TranslucentSprite},
+    system::System,
+    texture::Texture,
+    transform::Transform,
+    AppBuilder,
 };
 use ultraviolet::Vec3;
 
@@ -11,45 +16,38 @@ struct GameState {
     asset: Asset<String>,
 }
 
-// struct Pointer<T> {
-//     pointer: *mut T,
-// }
-
-// impl<T> Pointer<T> {
-//     fn new(t: &mut T) -> Self {
-//         Self {
-//             pointer: t as *mut T,
-//         }
-//     }
-
-//     const fn null() -> Self {
-//         Self {
-//             pointer: std::ptr::null_mut(),
-//         }
-//     }
-
-//     unsafe fn as_mut(&self) -> &mut T {
-//         &mut *self.pointer
-//     }
-// }
+struct DevGuiState {
+}
 
 fn main() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
 
-    let mut app = AppBuilder::new()
+    let mut builder = AppBuilder::new()
         .with_renderer(Box::new(cobalt::Renderer2D::new()))
-        .with_physics(Box::new(cobalt::Physics2D::new()));
-    
-    app.register_system(System::event_callback(
+        .with_physics(Box::new(cobalt::Physics2D::new()))
+        .with_dev_gui_startup(|ctx| {
+            log::info!("Initializing dev GUI.");
+            ctx.set_fonts(egui::FontDefinitions::default());
+        })
+        .with_dev_gui(|app, ctx| {
+            egui::Window::new("Perf").show(ctx, |ui| {
+                ui.label(format!("FPS: {}", app.perf_stats.fps));
+                ui.label(format!("Frame Time: {:?}", app.perf_stats.avg_frame_time));
+            });
+        });
+
+    builder.register_system(System::event_callback(
         "Window Resize",
         |app, delta| {
             let size = app.window.winit_win.inner_size();
-            
+
             // Change camera aspect ratio
             if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
-                if let cobalt::camera::Projection::Orthographic { aspect, .. } = &mut camera.projection {
+                if let cobalt::camera::Projection::Orthographic { aspect, .. } =
+                    &mut camera.projection
+                {
                     *aspect = size.width as f32 / size.height as f32;
                 }
             }
@@ -57,7 +55,7 @@ fn main() {
         cobalt::system::EventCallbackType::WindowResize,
     ));
 
-    app.register_system(System::startup("Add Scenes", |app, delta| {
+    builder.register_system(System::startup("Add Scenes", |app, delta| {
         app.scenes.add(
             "test",
             cobalt::scene::SceneGenerator::new(|scene, app| {
@@ -69,12 +67,9 @@ fn main() {
                     ))
                     .expect("Failed to create asset.");
 
-                    let bg_texture = app
+                let bg_texture = app
                     .assets
-                    .create_asset(Texture::load(
-                        &app.window,
-                        include_bytes!("texture.png"),
-                    ))
+                    .create_asset(Texture::load(&app.window, include_bytes!("texture.png")))
                     .expect("Failed to create asset.");
 
                 let translucent_texture = app
@@ -83,8 +78,8 @@ fn main() {
                         &app.window,
                         include_bytes!("translucent.png"),
                     ))
-                    .expect("Failed to create asset.");                
-                
+                    .expect("Failed to create asset.");
+
                 scene.world.spawn((
                     Sprite::new(&app, sprite_texture.clone()),
                     Transform::new(
@@ -121,8 +116,7 @@ fn main() {
                         Vec3::new(3.0, 1.5, 1.0),
                     ),
                 ));
-                
-                
+
                 scene.world.spawn((
                     Sprite::new(&app, bg_texture.clone()),
                     Transform::new(
@@ -153,7 +147,7 @@ fn main() {
         app.scenes.load("test").expect("Failed to load scene.");
     }));
 
-    app.register_system(System::timed(
+    builder.register_system(System::timed(
         "Input".to_string(),
         |app, delta| {
             for (id, (transform, rigidbody)) in app
@@ -234,7 +228,7 @@ fn main() {
         Duration::from_millis(5),
     ));
 
-    app.register_system(System::timed(
+    builder.register_system(System::timed(
         "Debug".to_string(),
         |app, delta| {
             // Clear line and go up
@@ -250,7 +244,7 @@ fn main() {
         Duration::from_millis(100),
     ));
 
-    let res = app.run();
+    let res = builder.run();
 
     println!("App quit with result: {:?}", res);
 }
