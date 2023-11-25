@@ -19,6 +19,7 @@ physics_3d = []
 ahash = "0.8.6"
 anyhow = "1.0.75"
 bytemuck = {version = "1.13.1", features = ["derive"]}
+glyphon = {git = "https://github.com/grovesNL/glyphon.git", rev = "f554de853b54229e6100b74446f351349e7fe063"}
 hecs = {version = "0.10.3", features = ["row-serialize"]}
 image = "0.24.7"
 log = "0.4.19"

@@ -6,33 +6,6 @@ use cobalt::{
 };
 use ultraviolet::Vec3;
 
-struct GameState {
-    counter: u32,
-    asset: Asset<String>,
-}
-
-// struct Pointer<T> {
-//     pointer: *mut T,
-// }
-
-// impl<T> Pointer<T> {
-//     fn new(t: &mut T) -> Self {
-//         Self {
-//             pointer: t as *mut T,
-//         }
-//     }
-
-//     const fn null() -> Self {
-//         Self {
-//             pointer: std::ptr::null_mut(),
-//         }
-//     }
-
-//     unsafe fn as_mut(&self) -> &mut T {
-//         &mut *self.pointer
-//     }
-// }
-
 fn main() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
