@@ -41,7 +41,8 @@ impl Texture {
 
     pub fn load(window: &crate::window::Window, bytes: &[u8]) -> Self {
         let img = image::load_from_memory(bytes).expect("Failed to load texture");
-        let rgba = img.as_rgba8().expect("Failed to convert texture to rgba");
+
+        let rgba = img.into_rgba8();
 
         let size = wgpu::Extent3d {
             width: rgba.width(),
@@ -70,7 +71,7 @@ impl Texture {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            rgba,
+            &rgba,
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * rgba.width()),

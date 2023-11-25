@@ -112,6 +112,7 @@ impl Renderer for Renderer2D {
 
             unsafe {
                 render_pass.set_pipeline(self.pipelines.get(&Sprite::type_id()).unwrap());
+
                 for (i, (rect, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Sprite, &mut Transform)>() {
                     rect.render(window, camera, transform, &mut render_pass)?;
                 }

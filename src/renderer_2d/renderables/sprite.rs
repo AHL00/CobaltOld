@@ -1,5 +1,5 @@
 use ultraviolet::Mat4;
-use wgpu::util::DeviceExt;
+use wgpu::{util::DeviceExt, BlendComponent, BlendFactor, BlendOperation};
 
 use crate::{
     assets::Asset, camera::Camera, texture::Texture, window::Window, App, transform::Transform, uniform::Uniform, Renderer2D

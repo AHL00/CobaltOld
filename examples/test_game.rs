@@ -65,34 +65,60 @@ fn main() {
                     .assets
                     .create_asset(Texture::load(
                         &app.window,
-                        include_bytes!(/*"texture.png"*/ "../images/logo.png"),
+                        include_bytes!("../images/logo.png"),
                     ))
                     .expect("Failed to create asset.");
 
-                scene.world.spawn((
-                    Sprite::new(&app, sprite_texture.clone()),
-                    Transform::new(
-                        Vec3::new(0.0, 25.0, 0.0),
-                        Vec3::new(0.0, 0.0, 0.0),
-                        Vec3::new(1.0, 1.0, 1.0),
-                    ),
-                    Rigidbody2D::new(),
-                ));
-
-                let bg_texture = app
+                    let bg_texture = app
                     .assets
                     .create_asset(Texture::load(
                         &app.window,
-                        include_bytes!(/*"texture.png"*/ "texture.png"),
+                        include_bytes!("texture.png"),
                     ))
                     .expect("Failed to create asset.");
 
+                let translucent_texture = app
+                    .assets
+                    .create_asset(Texture::load(
+                        &app.window,
+                        include_bytes!("translucent.png"),
+                    ))
+                    .expect("Failed to create asset.");                
+                
                 scene.world.spawn((
                     Sprite::new(&app, bg_texture.clone()),
                     Transform::new(
                         Vec3::new(0.0, 0.0, -1.0),
                         Vec3::new(0.0, 0.0, 0.0),
                         Vec3::new(15.0 * (16.0 / 9.0), 15.0, 1.0),
+                    ),
+                ));
+
+                scene.world.spawn((
+                    Sprite::new(&app, sprite_texture.clone()),
+                    Transform::new(
+                        Vec3::new(3.0, 0.0, 1.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(3.0, 3.0, 1.0),
+                    ),
+                ));
+
+                scene.world.spawn((
+                    Sprite::new(&app, sprite_texture.clone()),
+                    Transform::new(
+                        Vec3::new(-2.0, 25.0, 1.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(1.0, 1.0, 1.0),
+                    ),
+                    Rigidbody2D::new(),
+                ));
+
+                scene.world.spawn((
+                    Sprite::new(&app, translucent_texture.clone()),
+                    Transform::new(
+                        Vec3::new(0.0, 4.0, 0.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(2.0, 2.0, 1.0),
                     ),
                 ));
 
