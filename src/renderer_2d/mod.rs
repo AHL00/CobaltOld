@@ -4,7 +4,7 @@ use ahash::AHashMap;
 
 use crate::{window::Window, camera::Camera, renderer::Renderer, transform::Transform};
 
-use self::renderables::{sprite::Sprite, Renderable};
+use self::renderables::{sprite::Sprite, Renderable, TranslucentSprite};
 
 pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
@@ -81,7 +81,7 @@ impl Renderer for Renderer2D {
                     view: &output_view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -108,13 +108,27 @@ impl Renderer for Renderer2D {
                     .extend(std::iter::once((Sprite::type_id(), pipeline)));
             }
 
+            if !self.pipelines.contains_key(&TranslucentSprite::type_id()) {
+                // Generate pipeline
+                let pipeline = TranslucentSprite::create_pipeline(window)?;
+
+                self.pipelines
+                    .extend(std::iter::once((TranslucentSprite::type_id(), pipeline)));
+            }
+
             let world_raw_ptr = world as *mut hecs::World;
 
             unsafe {
                 render_pass.set_pipeline(self.pipelines.get(&Sprite::type_id()).unwrap());
 
-                for (i, (rect, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Sprite, &mut Transform)>() {
-                    rect.render(window, camera, transform, &mut render_pass)?;
+                for (i, (renderable, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut Sprite, &mut Transform)>() {
+                    renderable.render(window, camera, transform, &mut render_pass)?;
+                }
+
+                render_pass.set_pipeline(self.pipelines.get(&TranslucentSprite::type_id()).unwrap());
+
+                for (i, (renderable, transform)) in (&mut *world_raw_ptr).query_mut::<(&mut TranslucentSprite, &mut Transform)>() {
+                    renderable.render(window, camera, transform, &mut render_pass)?;
                 }
             }
         } // Renderpass

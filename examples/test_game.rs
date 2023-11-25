@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use cobalt::{
-    assets::Asset, physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::Sprite,
+    assets::Asset, physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::{Sprite, TranslucentSprite},
     system::System, texture::Texture, transform::Transform, AppBuilder,
 };
 use ultraviolet::Vec3;
@@ -86,15 +86,6 @@ fn main() {
                     .expect("Failed to create asset.");                
                 
                 scene.world.spawn((
-                    Sprite::new(&app, bg_texture.clone()),
-                    Transform::new(
-                        Vec3::new(0.0, 0.0, -1.0),
-                        Vec3::new(0.0, 0.0, 0.0),
-                        Vec3::new(15.0 * (16.0 / 9.0), 15.0, 1.0),
-                    ),
-                ));
-
-                scene.world.spawn((
                     Sprite::new(&app, sprite_texture.clone()),
                     Transform::new(
                         Vec3::new(3.0, 0.0, 1.0),
@@ -106,7 +97,7 @@ fn main() {
                 scene.world.spawn((
                     Sprite::new(&app, sprite_texture.clone()),
                     Transform::new(
-                        Vec3::new(-2.0, 25.0, 1.0),
+                        Vec3::new(-2.0, 25.0, 3.5),
                         Vec3::new(0.0, 0.0, 0.0),
                         Vec3::new(1.0, 1.0, 1.0),
                     ),
@@ -114,11 +105,30 @@ fn main() {
                 ));
 
                 scene.world.spawn((
-                    Sprite::new(&app, translucent_texture.clone()),
+                    TranslucentSprite::new(&app, translucent_texture.clone()),
                     Transform::new(
-                        Vec3::new(0.0, 4.0, 0.0),
+                        Vec3::new(0.0, 4.0, 3.0),
                         Vec3::new(0.0, 0.0, 0.0),
                         Vec3::new(2.0, 2.0, 1.0),
+                    ),
+                ));
+
+                scene.world.spawn((
+                    TranslucentSprite::new(&app, translucent_texture.clone()),
+                    Transform::new(
+                        Vec3::new(0.0, 4.0, 4.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(3.0, 1.5, 1.0),
+                    ),
+                ));
+                
+                
+                scene.world.spawn((
+                    Sprite::new(&app, bg_texture.clone()),
+                    Transform::new(
+                        Vec3::new(0.0, 0.0, -1.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(15.0 * (16.0 / 9.0), 15.0, 1.0),
                     ),
                 ));
 

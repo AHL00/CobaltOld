@@ -1,5 +1,7 @@
 pub mod sprite;
 pub use sprite::Sprite;
+pub mod translucent_sprite;
+pub use translucent_sprite::TranslucentSprite;
 
 use crate::{window::Window, camera::Camera, transform::Transform};
 

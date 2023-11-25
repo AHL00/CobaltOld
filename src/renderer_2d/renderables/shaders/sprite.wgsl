@@ -50,7 +50,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // So when another sprite is rendered behind these transparent pixels,
     // depth testing fails because the transparent pixels are closer to the camera.
 
-    // Is 0.5 a good value? Depends on the sprite, but it's a good starting point
+    // Is 0.01 a good value?
     // Maybe it should be a parameter of the shader?
     // TODO: Add alpha testing uniform
     if (color.a < 0.01) {
