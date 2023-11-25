@@ -1,3 +1,4 @@
+use ultraviolet::{Mat4, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{transform::Transform, window::Window};
@@ -105,57 +106,36 @@ impl Camera {
 
     fn view_matrix(&mut self) -> ultraviolet::Mat4 {
         let pos = self.transform.position();
-        let (up_x, up_y, up_z) = self.transform.up().into();
-        let (forward_x, forward_y, forward_z) = self.transform.forward().into();
+        let up = self.transform.up();
+        let forward = self.transform.forward();
 
-        // let cg_mat = cgmath::Matrix4::look_at_rh(
-        //     cgmath::Point3::new(pos_x, pos_y, pos_z),
-        //     cgmath::Point3::new(0.0, 0.0, 0.0),
-        //     cgmath::Vector3::new(up_x, up_y, up_z),
-        // );
+        // Code copied from cgmath::Matrix4::look_to_rh
+        // let f = dir.normalize();
+        // let s = f.cross(up).normalize();
+        // let u = s.cross(f);
 
-        let cg_mat = cgmath::Matrix4::look_to_rh(
-            cgmath::Point3::new(pos.x, pos.y, pos.z),
-            cgmath::Vector3::new(forward_x, forward_y, forward_z),
-            cgmath::Vector3::new(up_x, up_y, up_z),
+        // #[cfg_attr(rustfmt, rustfmt_skip)]
+        // Matrix4::new(
+        //     s.x.clone(), u.x.clone(), -f.x.clone(), S::zero(),
+        //     s.y.clone(), u.y.clone(), -f.y.clone(), S::zero(),
+        //     s.z.clone(), u.z.clone(), -f.z.clone(), S::zero(),
+        //     -eye.dot(s), -eye.dot(u), eye.dot(f), S::one(),
+        // )
+
+        let f = forward.normalized();
+        let s = f.cross(up).normalized();
+        let u = s.cross(f);
+
+        let mat = Mat4::new(
+            Vec4::new(s.x, u.x, -f.x, 0.0),
+            Vec4::new(s.y, u.y, -f.y, 0.0),
+            Vec4::new(s.z, u.z, -f.z, 0.0),
+            Vec4::new(-pos.dot(s), -pos.dot(u), pos.dot(f), 1.0),
         );
-
-        let mat = Self::cgmath_to_ultraviolet_mat4(&cg_mat);
 
         self.cached_view_matrix = Some(mat);
 
         mat
-    }
-
-    fn cgmath_to_ultraviolet_mat4(mat: &cgmath::Matrix4<f32>) -> ultraviolet::Mat4 {
-        ultraviolet::Mat4 {
-            cols: [
-                ultraviolet::Vec4 {
-                    x: mat.x.x,
-                    y: mat.x.y,
-                    z: mat.x.z,
-                    w: mat.x.w,
-                },
-                ultraviolet::Vec4 {
-                    x: mat.y.x,
-                    y: mat.y.y,
-                    z: mat.y.z,
-                    w: mat.y.w,
-                },
-                ultraviolet::Vec4 {
-                    x: mat.z.x,
-                    y: mat.z.y,
-                    z: mat.z.z,
-                    w: mat.z.w,
-                },
-                ultraviolet::Vec4 {
-                    x: mat.w.x,
-                    y: mat.w.y,
-                    z: mat.w.z,
-                    w: mat.w.w,
-                },
-            ],
-        }
     }
 
     /// Converts a point in world space to screen space

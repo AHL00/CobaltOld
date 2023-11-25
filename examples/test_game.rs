@@ -156,9 +156,6 @@ fn main() {
     app.register_system(System::timed(
         "Input".to_string(),
         |app, delta| {
-            // world iterate over all transforms
-            let mut obj_pos = Vec3::zero();
-
             for (id, (transform, rigidbody)) in app
                 .scenes
                 .current_mut()
@@ -181,8 +178,30 @@ fn main() {
                 if app.input.is_key_down(cobalt::input::Key::KeyD) {
                     transform.position_mut().x += 10.0 * delta.as_secs_f32();
                 }
+            }
 
-                obj_pos = *transform.position();
+            if app.input.is_key_down(cobalt::input::Key::ArrowRight) {
+                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                    camera.transform.position_mut().x += 10.0 * delta.as_secs_f32();
+                }
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowLeft) {
+                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                    camera.transform.position_mut().x -= 10.0 * delta.as_secs_f32();
+                }
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowUp) {
+                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                    camera.transform.position_mut().y += 10.0 * delta.as_secs_f32();
+                }
+            }
+
+            if app.input.is_key_down(cobalt::input::Key::ArrowDown) {
+                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                    camera.transform.position_mut().y -= 10.0 * delta.as_secs_f32();
+                }
             }
 
             if app.input.is_key_clicked(cobalt::input::Key::Space) {
