@@ -69,10 +69,6 @@ impl Sprite {
 }
 
 impl<'a> Renderable<'a> for Sprite {
-    fn update(&mut self, window: &mut crate::window::Window) -> anyhow::Result<()> {
-        Ok(())
-    }
-
     fn render(
         &'a self,
         window: &mut crate::window::Window,

@@ -1,10 +1,16 @@
 use std::time::Duration;
 
 use cobalt::{
-    assets::Asset, physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::{Sprite, TranslucentSprite},
+    physics_2d::rigidbody::Rigidbody2D, renderer_2d::renderables::{Sprite, TranslucentSprite, Text},
     system::System, texture::Texture, transform::Transform, AppBuilder,
 };
+use hecs::Entity;
 use ultraviolet::Vec3;
+
+struct Game {
+    fps_text: Option<Entity>,
+    start_time: std::time::Instant,
+}
 
 fn main() {
     env_logger::builder()
@@ -31,9 +37,16 @@ fn main() {
     ));
 
     app.register_system(System::startup("Add Scenes", |app, delta| {
+        app.perf_stats.collection_duration = Duration::from_millis(100);
+
         app.scenes.add(
             "test",
             cobalt::scene::SceneGenerator::new(|scene, app| {
+                let mut game = Game {
+                    fps_text: None,
+                    start_time: std::time::Instant::now(),
+                };
+
                 let sprite_texture = app
                     .assets
                     .create_asset(Texture::load(
@@ -61,7 +74,7 @@ fn main() {
                 scene.world.spawn((
                     Sprite::new(&app, sprite_texture.clone()),
                     Transform::new(
-                        Vec3::new(3.0, 0.0, 1.0),
+                        Vec3::new(3.0, 0.0, 3.5),
                         Vec3::new(0.0, 0.0, 0.0),
                         Vec3::new(3.0, 3.0, 1.0),
                     ),
@@ -76,6 +89,16 @@ fn main() {
                     ),
                     Rigidbody2D::new(),
                 ));
+
+                game.fps_text = Some(scene.world.spawn((
+                    Text::new("Cobalt Engine. Lorem ipsum dolor sit amet.", (800.0, 600.0), 20.0, 24.0),
+                    Transform::new(
+                        Vec3::new(0.0, 0.0, 2.0),
+                        Vec3::new(0.0, 0.0, 0.0),
+                        Vec3::new(1.0, 1.0, 1.0),
+                    ),
+                    Rigidbody2D::new(),
+                )));
 
                 scene.world.spawn((
                     TranslucentSprite::new(&app, translucent_texture.clone()),
@@ -94,7 +117,6 @@ fn main() {
                         Vec3::new(3.0, 1.5, 1.0),
                     ),
                 ));
-                
                 
                 scene.world.spawn((
                     Sprite::new(&app, bg_texture.clone()),
@@ -120,6 +142,8 @@ fn main() {
                     },
                     &app.window,
                 ));
+
+                app.resources.create_resource(game);
             }),
         );
 
@@ -210,15 +234,19 @@ fn main() {
     app.register_system(System::timed(
         "Debug".to_string(),
         |app, delta| {
-            // Clear line and go up
-            for _ in 0..1 {
-                print!("\x1b[1A\x1b[2K");
+            if let Some(game) = app.resources.get_resource::<Game>() {
+                if let Some(fps_text_entity) = game.fps_text {
+                    if let Ok(text) = app
+                        .scenes
+                        .current_mut()
+                        .unwrap()
+                        .world
+                        .query_one_mut::<&mut Text>(fps_text_entity)
+                    {
+                        text.set_text(format!("FPS: {}\nFrame Time: {:.2?}\nTime: {:.2?}\n", app.perf_stats.fps, app.perf_stats.avg_frame_time, game.start_time.elapsed()));
+                    }
+                }
             }
-
-            println!(
-                "FPS: {}, Frame Time: {:?}",
-                app.perf_stats.fps, app.perf_stats.avg_frame_time
-            );
         },
         Duration::from_millis(100),
     ));

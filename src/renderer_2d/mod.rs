@@ -4,16 +4,16 @@ use ahash::AHashMap;
 
 use crate::{camera::Camera, renderer::Renderer, transform::Transform, window::Window};
 
-use self::renderables::{sprite::Sprite, Renderable, TranslucentSprite};
+use self::renderables::{sprite::Sprite, Renderable, TranslucentSprite, Text};
 
 pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
     depth_texture: Option<wgpu::Texture>,
 
-    font_system: glyphon::FontSystem,
-    swash_cache: glyphon::SwashCache,
-    text_atlas: Option<glyphon::TextAtlas>,
-    text_renderer: Option<glyphon::TextRenderer>,
+    pub(crate) font_system: glyphon::FontSystem,
+    pub(crate) swash_cache: glyphon::SwashCache,
+    pub(crate) text_atlas: Option<glyphon::TextAtlas>,
+    pub(crate) text_renderer: Option<glyphon::TextRenderer>,
 }
 
 impl Renderer2D {
@@ -155,6 +155,7 @@ impl Renderer for Renderer2D {
             }
 
             let world_raw_ptr = world as *mut hecs::World;
+            let self_raw_ptr = self as *mut Renderer2D;
 
             unsafe {
                 render_pass.set_pipeline(self.pipelines.get(&Sprite::type_id()).unwrap());
@@ -173,51 +174,17 @@ impl Renderer for Renderer2D {
                 {
                     renderable.render(window, camera, transform, &mut render_pass)?;
                 }
+
+                for (i, (renderable, transform)) in
+                    (&mut *world_raw_ptr).query_mut::<(&mut Text, &mut Transform)>()
+                {
+                    let self_ref = &mut *self_raw_ptr;
+                    let text_atlas = self_ref.text_atlas.as_mut().unwrap();
+                    let text_renderer = self_ref.text_renderer.as_mut().unwrap();
+                    
+                    renderable.render(window, camera, transform, &mut self_ref.font_system, &mut self_ref.swash_cache, text_atlas, text_renderer, &mut render_pass)?;
+                }
             }
-
-            let mut buffer = glyphon::Buffer::new(
-                &mut self.font_system,
-                glyphon::Metrics {
-                    font_size: 32.0,
-                    line_height: 40.0,
-                },
-            );
-
-            buffer.set_size(&mut self.font_system, 800.0, 120.0);
-            buffer.set_text(&mut self.font_system,  "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z", glyphon::Attrs::new().family(glyphon::Family::SansSerif), glyphon::Shaping::Advanced);
-            buffer.shape_until_scroll(&mut self.font_system);
-
-            let size = window.winit_win.inner_size();
-
-            self.text_renderer.as_mut().unwrap().prepare(
-                &window.device,
-                &window.queue,
-                &mut self.font_system,
-                self.text_atlas.as_mut().unwrap(),
-                glyphon::Resolution {
-                    width: size.width as u32,
-                    height: size.height as u32,
-                },
-                [glyphon::TextArea {
-                    buffer: &buffer,
-                    top: 10.0,
-                    left: 10.0,
-                    scale: 1.0,
-                    bounds: glyphon::TextBounds {
-                        left: 0,
-                        top: 0,
-                        right: 800,
-                        bottom: 120,
-                    },
-                    default_color: glyphon::Color::rgb(255, 255, 255),
-                }],
-                &mut self.swash_cache,
-            )?;
-
-            self.text_renderer
-                .as_mut()
-                .unwrap()
-                .render(self.text_atlas.as_ref().unwrap(), &mut render_pass)?;
         }
         window.queue.submit(std::iter::once(encoder.finish()));
         output.present();

@@ -69,10 +69,6 @@ impl TranslucentSprite {
 }
 
 impl<'a> Renderable<'a> for TranslucentSprite {
-    fn update(&mut self, window: &mut crate::window::Window) -> anyhow::Result<()> {
-        Ok(())
-    }
-
     fn render(
         &'a self,
         window: &mut crate::window::Window,

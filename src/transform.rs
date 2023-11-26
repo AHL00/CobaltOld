@@ -8,6 +8,8 @@ pub struct Transform {
 
     dirty: bool,
     model_matrix: ultraviolet::Mat4,
+    /// If true, the transform is relative to the camera
+    pub camera_relative: bool,
 }
 
 impl Transform {
@@ -43,6 +45,7 @@ impl Transform {
             scale,
             dirty: true,
             model_matrix: ultraviolet::Mat4::identity(),
+            camera_relative: false,
         }
     }
 

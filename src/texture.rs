@@ -8,6 +8,7 @@ pub struct Texture {
     pub(crate) size: wgpu::Extent3d,
 }
 
+
 impl Texture {
     pub(crate) fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
