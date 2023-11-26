@@ -23,6 +23,8 @@ pub struct System {
     /// The first time, the delta will be off
     /// So before App.run(), we need to set this to the current time
     pub(crate) last_run: Instant,
+
+    pub(crate) scene: Option<String>,
 }
 
 impl System {
@@ -35,6 +37,7 @@ impl System {
             system_type: SystemType::Startup,
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
+            scene: None,
         }
     }
 
@@ -47,10 +50,11 @@ impl System {
             system_type: SystemType::EventCallback(event_type),
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
+            scene: None
         }
     }
 
-    pub fn timed<T, S>(name: S, run: T, duration: Duration) -> System 
+    pub fn timed<T, S>(name: S, scene: Option<impl Into<String>>, run: T, duration: Duration) -> System 
     where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
@@ -59,10 +63,11 @@ impl System {
             system_type: SystemType::Timed(duration),
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
+            scene: scene.map(|s| s.into())
         }
     }
 
-    pub fn update<T, S>(name: S, run: T) -> System 
+    pub fn update<T, S>(name: S, scene: Option<impl Into<String>>, run: T) -> System 
     where T: FnMut(&mut App, &Duration) + 'static, S: Into<String>
     {
         System {
@@ -71,6 +76,7 @@ impl System {
             system_type: SystemType::Update,
             uuid: uuid::Uuid::new_v4(),
             last_run: Instant::now(),
+            scene: scene.map(|s| s.into())
         }
     }
 }

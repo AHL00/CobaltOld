@@ -79,7 +79,7 @@ impl<'a> Rect {
             });
 
         let model_matrix_uniform = Uniform::<Mat4>::new(&window.device, &Mat4::identity(), 0, wgpu::ShaderStages::VERTEX);
-        let color_uniform = Uniform::<[f32; 4]>::new(&window.device, &self.color, 1, wgpu::ShaderStages::VERTEX_FRAGMENT);
+        let color_uniform = Uniform::<[f32; 4]>::new(&window.device, &self.color, 0, wgpu::ShaderStages::VERTEX_FRAGMENT);
 
         self.render_info = Some(RectRenderInfo {
             vertex_buffer,

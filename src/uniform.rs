@@ -24,7 +24,7 @@ where
             label: Some("Uniform Bind Group"),
             layout: &Self::get_bind_group_layout(device, visibility),
             entries: &[wgpu::BindGroupEntry {
-                binding,
+                binding: 0,
                 resource: uniform_buffer.as_entire_binding(),
             }],
         });

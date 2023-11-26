@@ -6,8 +6,6 @@ use crate::{
     window::Window, App, Renderer2D,
 };
 
-use super::Renderable;
-
 pub struct Text {
     text_buffer: Option<glyphon::Buffer>,
     text: String,
@@ -16,6 +14,7 @@ pub struct Text {
     line_height: f32,
     advanced_text: bool,
     last_z: f32,
+    centered_origin: bool,
 
     _dirty_metrics: bool,
     _dirty_text: bool,
@@ -35,6 +34,7 @@ impl<'a> Text {
             line_height,
             advanced_text: false,
             last_z: 0.0,
+            centered_origin: true,
 
             _dirty_metrics: true,
             _dirty_text: true,
@@ -69,6 +69,10 @@ impl<'a> Text {
         self.advanced_text
     }
 
+    pub fn set_centered_origin(&mut self, centered_origin: bool) {
+        self.centered_origin = centered_origin;
+    }
+
     pub fn set_text<S>(&mut self, text: S)
     where
         S: Into<String>,
@@ -81,12 +85,12 @@ impl<'a> Text {
         self.text.as_str()
     }
 
-    pub fn set_size(&mut self, size: (f32, f32)) {
-        self.bounds = size;
+    pub fn set_bounds(&mut self, bounds: (f32, f32)) {
+        self.bounds = bounds;
         self._dirty_bounds = true;
     }
 
-    pub fn size(&self) -> (f32, f32) {
+    pub fn bounds(&self) -> (f32, f32) {
         self.bounds
     }
 
@@ -151,10 +155,17 @@ impl<'a> Text {
         
         let screen_size = window.winit_win.inner_size();
 
+        let mut screen_space_pos = camera.world_to_screen(window, transform.position());
+
+        if self.centered_origin {
+            screen_space_pos.x -= self.bounds.0 / 2.0;
+            screen_space_pos.y -= self.bounds.1 / 2.0;
+        }
+
         let text_area = glyphon::TextArea {
             buffer: &self.text_buffer.as_ref().unwrap(),
-            left: 0.0,
-            top: 0.0,
+            left: screen_space_pos.x,
+            top: screen_space_pos.y,
             scale: 1.0,
             bounds: glyphon::TextBounds {
                 left: 0,
@@ -164,7 +175,6 @@ impl<'a> Text {
             },
             default_color: glyphon::Color::rgb(255, 255, 255),
         };
-
 
         text_renderer.prepare_with_depth(
             &window.device,

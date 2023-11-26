@@ -16,6 +16,7 @@ impl Scene {
 pub struct ScenesManager {
     scenes: AHashMap<String, SceneGenerator>,
     current_scene: Option<Scene>,
+    current_scene_name: Option<String>,
     // This is an workaround to allow the scene generator to access the app.
     // If not, the user will have to call app.scenes.load("test", app) instead of app.scenes.load("test").
     // This causes a double mutable borrow, which is not allowed.
@@ -28,22 +29,29 @@ impl ScenesManager {
         Self {
             scenes: AHashMap::new(),
             current_scene: None,
+            current_scene_name: None,
             app_ref: std::ptr::null_mut(),
         }
     }
 
-    pub fn current(&self) -> Option<&Scene> {
+    pub fn current_scene_name(&self) -> Option<&String> {
+        self.current_scene_name.as_ref()
+    }
+
+    pub fn current_scene(&self) -> Option<&Scene> {
         self.current_scene.as_ref()
     }
 
-    pub fn current_mut(&mut self) -> Option<&mut Scene> {
+    pub fn current_scene_mut(&mut self) -> Option<&mut Scene> {
         self.current_scene.as_mut()
     }
 
     pub fn load<S: Into<String>>(&mut self, name: S) -> anyhow::Result<()> {
-        let scene_gen = self.scenes.get(&name.into()).ok_or(anyhow::anyhow!("Scene not found."))?;
+        let name = name.into();
+        let scene_gen = self.scenes.get(&name).ok_or(anyhow::anyhow!("Scene not found."))?;
 
         self.current_scene = Some(scene_gen.generate(unsafe { &mut *self.app_ref }));
+        self.current_scene_name = Some(name);
         Ok(())
     }
 

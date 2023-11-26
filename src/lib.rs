@@ -51,8 +51,8 @@ pub struct AppBuilder {
 impl Default for AppBuilder {
     fn default() -> Self {
         Self::new()
-        .with_physics(Box::new(Physics2D::new()))
-        .with_renderer(Box::new(Renderer2D::new()))
+            .with_physics(Box::new(Physics2D::new()))
+            .with_renderer(Box::new(Renderer2D::new()))
     }
 }
 
@@ -73,21 +73,37 @@ impl AppBuilder {
 
         for system in &mut self.systems {
             if let system::SystemType::EventCallback(e) = &system.system_type {
+                // If the system is registered to a scene, check if the current scene is the same as the system's scene
+                // If not, continue
+                let mut run_system = true;
+                if let Some(scene) = app.scenes.current_scene_name() {
+                    if let Some(current_scene) = &system.scene {
+                        if current_scene != scene {
+                            run_system = false;
+                        }
+                    }
+                }
+
                 if *e == event {
-                    (system.update)(app, &system.last_run.elapsed());
+                    if run_system {
+                        (system.update)(app, &system.last_run.elapsed());
+                    }
+
+                    // Update delta time
+                    system.last_run = std::time::Instant::now();
                 }
             }
         }
     }
-    
+
     pub fn run(mut self) -> anyhow::Result<()> {
         log::info!("Cobalt v{}", env!("CARGO_PKG_VERSION"));
         log::info!("Starting...");
 
         let event_loop = self.build()?;
-        
+
         let mut app = self.app.take().expect("App not initialized.");
-        
+
         // The scene manager takes a mutable pointer to the app to pass it along to the scene generator.
         // Read more in the scene module.
         // TODO: Find a better way to do this.
@@ -100,22 +116,20 @@ impl AppBuilder {
         for system in &mut self.systems {
             system.last_run = std::time::Instant::now();
         }
-        
-        
+
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-        
+
         // Run all the startup systems
         for system in &mut self.systems {
             if let system::SystemType::Startup = system.system_type {
                 (system.update)(&mut app, &system.last_run.elapsed());
             }
         }
-        
+
         // Remove all the startup systems
-        self.systems.retain(|s| {
-            !matches!(s.system_type, system::SystemType::Startup)
-        });
-        
+        self.systems
+            .retain(|s| !matches!(s.system_type, system::SystemType::Startup));
+
         // Run the loop
         event_loop.run(|event, elwt| {
             use winit::event::{Event, WindowEvent};
@@ -126,7 +140,7 @@ impl AppBuilder {
                         WindowEvent::CloseRequested => {
                             // Cleanup
                             self.run_event_system(system::EventCallbackType::ShutDown, &mut app);
-                            
+
                             elwt.exit();
 
                             // Drop all assets
@@ -135,28 +149,52 @@ impl AppBuilder {
                         WindowEvent::RedrawRequested => {
                             // Update and run systems
                             for system in &mut self.systems {
+                                // Check if the system is registered to a scene
+                                let mut run_system = true;
+                                if let Some(scene) = &system.scene {
+                                    // Check if the current scene is the same as the system's scene
+                                    if let Some(current_scene) = app.scenes.current_scene_name() {
+                                        if current_scene != scene {
+                                            run_system = false;
+                                        }
+                                    }
+                                    // If the current scene is None, continue
+                                    else {
+                                        run_system = false;
+                                    }
+                                }
+
                                 match system.system_type {
                                     system::SystemType::Timed(duration) => {
                                         if system.last_run.elapsed() >= duration {
-                                            (system.update)(&mut app, &system.last_run.elapsed());
+                                            // Still loop and check to track last_run times
+                                            if run_system {
+                                                (system.update)(
+                                                    &mut app,
+                                                    &system.last_run.elapsed(),
+                                                );
+                                            }
                                             system.last_run = std::time::Instant::now();
                                         }
                                     }
                                     system::SystemType::Update => {
-                                        (system.update)(&mut app, &system.last_run.elapsed());
+                                        // Still loop and check to track last_run times
+                                        if run_system {
+                                            (system.update)(&mut app, &system.last_run.elapsed());
+                                        }
                                         system.last_run = std::time::Instant::now();
                                     }
                                     _ => {}
                                 }
                             }
-                            
+
                             app.assets.update_ref_counts();
-                            
+
                             // Update camera buffer
-                            if let Some(scene) = app.scenes.current_mut() {
+                            if let Some(scene) = app.scenes.current_scene_mut() {
                                 if let Some(camera) = &mut scene.camera {
                                     camera.update_uniform(&app.window);
-                                    
+
                                     // Render
                                     let res = app.renderer.render(
                                         &mut app.window,
@@ -180,8 +218,11 @@ impl AppBuilder {
                             let res = app.window.resize(s);
 
                             // Event: WindowResize
-                            self.run_event_system(system::EventCallbackType::WindowResize, &mut app);
-                            
+                            self.run_event_system(
+                                system::EventCallbackType::WindowResize,
+                                &mut app,
+                            );
+
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
                             }
@@ -192,7 +233,10 @@ impl AppBuilder {
                             let res = app.window.resize(app.window.winit_win.inner_size());
 
                             // Event: WindowResize
-                            self.run_event_system(system::EventCallbackType::WindowResize, &mut app);
+                            self.run_event_system(
+                                system::EventCallbackType::WindowResize,
+                                &mut app,
+                            );
 
                             if let Err(e) = res {
                                 log::error!("Failed to resize window: {}", e);
@@ -210,18 +254,18 @@ impl AppBuilder {
             }
 
             if let Some(physics) = &mut app.physics {
-                if let Some(scene) = app.scenes.current_mut() {
+                if let Some(scene) = app.scenes.current_scene_mut() {
                     physics.simulate(&mut scene.world);
                 }
             }
         })?;
-        
+
         Ok(())
     }
-    
+
     fn build(&mut self) -> anyhow::Result<winit::event_loop::EventLoop<()>> {
         let event_loop = winit::event_loop::EventLoop::new()?;
-        
+
         let window = window::Window::create(&event_loop)?;
 
         log::info!("Window created.");
@@ -248,6 +292,9 @@ impl AppBuilder {
         Ok(event_loop)
     }
 
+    /// Registers a system with the app.
+    /// Scene is an optional parameter that specifies the scene the system should be registered to.
+    /// If no scene is specified, the system will be registered to all scenes.
     pub fn register_system(&mut self, system: system::System) {
         if !self.systems.iter().any(|s| s.uuid == system.uuid) {
             self.systems.push(system);

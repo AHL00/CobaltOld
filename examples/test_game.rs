@@ -27,7 +27,7 @@ fn main() {
             let size = app.window.winit_win.inner_size();
             
             // Change camera aspect ratio
-            if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+            if let Some(camera) = app.scenes.current_scene_mut().unwrap().camera.as_mut() {
                 if let cobalt::camera::Projection::Orthographic { aspect, .. } = &mut camera.projection {
                     *aspect = size.width as f32 / size.height as f32;
                 }
@@ -91,13 +91,12 @@ fn main() {
                 ));
 
                 game.fps_text = Some(scene.world.spawn((
-                    Text::new("Cobalt Engine. Lorem ipsum dolor sit amet.", (800.0, 600.0), 20.0, 24.0),
+                    Text::new("Cobalt Engine. Lorem ipsum dolor sit amet.", (200.0, 72.0), 20.0, 24.0),
                     Transform::new(
                         Vec3::new(0.0, 0.0, 2.0),
                         Vec3::new(0.0, 0.0, 0.0),
                         Vec3::new(1.0, 1.0, 1.0),
                     ),
-                    Rigidbody2D::new(),
                 )));
 
                 scene.world.spawn((
@@ -152,10 +151,11 @@ fn main() {
 
     app.register_system(System::timed(
         "Input".to_string(),
+        Some("test"),
         |app, delta| {
             for (id, (transform, rigidbody)) in app
                 .scenes
-                .current_mut()
+                .current_scene_mut()
                 .unwrap()
                 .world
                 .query_mut::<(&mut Transform, &Rigidbody2D)>()
@@ -178,25 +178,25 @@ fn main() {
             }
 
             if app.input.is_key_down(cobalt::input::Key::ArrowRight) {
-                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                if let Some(camera) = app.scenes.current_scene_mut().unwrap().camera.as_mut() {
                     camera.transform.position_mut().x += 10.0 * delta.as_secs_f32();
                 }
             }
 
             if app.input.is_key_down(cobalt::input::Key::ArrowLeft) {
-                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                if let Some(camera) = app.scenes.current_scene_mut().unwrap().camera.as_mut() {
                     camera.transform.position_mut().x -= 10.0 * delta.as_secs_f32();
                 }
             }
 
             if app.input.is_key_down(cobalt::input::Key::ArrowUp) {
-                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                if let Some(camera) = app.scenes.current_scene_mut().unwrap().camera.as_mut() {
                     camera.transform.position_mut().y += 10.0 * delta.as_secs_f32();
                 }
             }
 
             if app.input.is_key_down(cobalt::input::Key::ArrowDown) {
-                if let Some(camera) = app.scenes.current_mut().unwrap().camera.as_mut() {
+                if let Some(camera) = app.scenes.current_scene_mut().unwrap().camera.as_mut() {
                     camera.transform.position_mut().y -= 10.0 * delta.as_secs_f32();
                 }
             }
@@ -205,7 +205,7 @@ fn main() {
                 // Toggle rigidbody
                 for (id, rigidbody) in app
                     .scenes
-                    .current_mut()
+                    .current_scene_mut()
                     .unwrap()
                     .world
                     .query_mut::<&mut Rigidbody2D>()
@@ -218,7 +218,7 @@ fn main() {
                 // Reset position
                 for (id, (transform, rigidbody)) in app
                     .scenes
-                    .current_mut()
+                    .current_scene_mut()
                     .unwrap()
                     .world
                     .query_mut::<(&mut Transform, &mut Rigidbody2D)>()
@@ -233,12 +233,13 @@ fn main() {
 
     app.register_system(System::timed(
         "Debug".to_string(),
+        Some("test"),
         |app, delta| {
             if let Some(game) = app.resources.get_resource::<Game>() {
                 if let Some(fps_text_entity) = game.fps_text {
                     if let Ok(text) = app
                         .scenes
-                        .current_mut()
+                        .current_scene_mut()
                         .unwrap()
                         .world
                         .query_one_mut::<&mut Text>(fps_text_entity)
