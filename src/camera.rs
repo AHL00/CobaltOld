@@ -54,7 +54,7 @@ impl Camera {
 
     /// Updates the uniform and copies it to the bind group
     /// Call after updating the camera's transform
-    pub fn update_uniform(&mut self, window: &crate::window::Window) {
+    pub(crate) fn update_uniform(&mut self, window: &crate::window::Window) {
         let view = self.view_matrix();
         let proj = self.projection_matrix();
 
@@ -160,6 +160,18 @@ impl Camera {
             (1.0 - ndc.y) / 2.0 * win_size.height as f32,
             ndc.z,
         )
+    }
+
+    pub fn viewport_size(&self) -> (f32, f32) {
+        match self.projection {
+            Projection::Perspective { aspect, .. } => {
+                // TODO: Adjustable viewport size
+                (aspect * 2.0, 2.0)
+            }
+            Projection::Orthographic { aspect, height, .. } => {
+                (aspect * height, height)
+            },
+        }
     }
 
     pub fn new(

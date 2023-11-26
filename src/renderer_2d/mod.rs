@@ -4,7 +4,7 @@ use ahash::AHashMap;
 
 use crate::{camera::Camera, renderer::Renderer, transform::Transform, window::Window};
 
-use self::renderables::{sprite::Sprite, Renderable, TranslucentSprite, Text};
+use self::renderables::{sprite::Sprite, Renderable, TranslucentSprite, Text, Rect};
 
 pub struct Renderer2D {
     pipelines: AHashMap<std::any::TypeId, wgpu::RenderPipeline>,
@@ -154,6 +154,14 @@ impl Renderer for Renderer2D {
                     .extend(std::iter::once((TranslucentSprite::type_id(), pipeline)));
             }
 
+            if !self.pipelines.contains_key(&Rect::type_id()) {
+                // Generate pipeline
+                let pipeline = Rect::create_pipeline(window)?;
+
+                self.pipelines
+                    .extend(std::iter::once((Rect::type_id(), pipeline)));
+            }
+
             let world_raw_ptr = world as *mut hecs::World;
             let self_raw_ptr = self as *mut Renderer2D;
 
@@ -181,8 +189,16 @@ impl Renderer for Renderer2D {
                     let self_ref = &mut *self_raw_ptr;
                     let text_atlas = self_ref.text_atlas.as_mut().unwrap();
                     let text_renderer = self_ref.text_renderer.as_mut().unwrap();
-                    
+
                     renderable.render(window, camera, transform, &mut self_ref.font_system, &mut self_ref.swash_cache, text_atlas, text_renderer, &mut render_pass)?;
+                }
+
+                render_pass.set_pipeline(self.pipelines.get(&Rect::type_id()).unwrap());
+                
+                for (i, (renderable, transform)) in
+                    (&mut *world_raw_ptr).query_mut::<(&mut Rect, &mut Transform)>()
+                {
+                    renderable.render(window, camera, transform, &mut render_pass)?;
                 }
             }
         }

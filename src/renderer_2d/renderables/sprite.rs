@@ -57,7 +57,7 @@ impl Sprite {
                     usage: wgpu::BufferUsages::INDEX,
                 });
 
-        let transform_uniform = Uniform::<Mat4>::new(&app.window.device, &Mat4::identity(), 0);
+        let transform_uniform = Uniform::<Mat4>::new(&app.window.device, &Mat4::identity(), 0, wgpu::ShaderStages::VERTEX);
 
         Self {
             texture: Some(texture),
@@ -70,7 +70,7 @@ impl Sprite {
 
 impl<'a> Renderable<'a> for Sprite {
     fn render(
-        &'a self,
+        &'a mut self,
         window: &mut crate::window::Window,
         camera: &'a Camera,
         transform: &'a mut Transform,
@@ -107,7 +107,7 @@ impl<'a> Renderable<'a> for Sprite {
 
         let texture_bind_group_layout = Texture::get_bind_group_layout(&window.device);
         let camera_bind_group_layout = Camera::get_bind_group_layout(&window.device);
-        let model_matrix_bind_group_layout = Uniform::<Mat4>::get_bind_group_layout(&window.device);
+        let model_matrix_bind_group_layout = Uniform::<Mat4>::get_bind_group_layout(&window.device, wgpu::ShaderStages::VERTEX);
 
         let render_pipeline_layout =
             window

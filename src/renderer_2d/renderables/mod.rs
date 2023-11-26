@@ -4,6 +4,8 @@ pub mod translucent_sprite;
 pub use translucent_sprite::TranslucentSprite;
 pub mod text;
 pub use text::Text;
+pub mod rect;
+pub use rect::Rect;
 
 
 use crate::{window::Window, camera::Camera, transform::Transform};
@@ -12,7 +14,7 @@ pub trait Renderable<'a> {
     // Called after the pipeline generated at the start is set to the render_pass
     // fn render(&mut self, window: &mut Window, encoder: &mut wgpu::CommandEncoder) -> anyhow::Result<()>;
     fn render(
-        &'a self,
+        &'a mut self,
         window: &mut Window,
         camera: &'a Camera,
         transform: &'a mut Transform,

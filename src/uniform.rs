@@ -13,7 +13,7 @@ impl<T> Uniform<T>
 where
     T: bytemuck::Pod + bytemuck::Zeroable,
 {
-    pub(crate) fn new(device: &Device, data: &T, binding: u32) -> Self {
+    pub(crate) fn new(device: &Device, data: &T, binding: u32, visibility: wgpu::ShaderStages) -> Self {
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::cast_slice(&[*data]),
@@ -22,7 +22,7 @@ where
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Uniform Bind Group"),
-            layout: &Self::get_bind_group_layout(device),
+            layout: &Self::get_bind_group_layout(device, visibility),
             entries: &[wgpu::BindGroupEntry {
                 binding,
                 resource: uniform_buffer.as_entire_binding(),
@@ -36,12 +36,12 @@ where
         }
     }
 
-    pub(crate) fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    pub(crate) fn get_bind_group_layout(device: &wgpu::Device, visibility: wgpu::ShaderStages) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Uniform Bind Group Layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,

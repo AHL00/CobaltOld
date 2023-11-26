@@ -16,7 +16,6 @@ impl Window {
             .with_inner_size(winit::dpi::LogicalSize::new(1280, 720))
             .with_fullscreen(None)
             .with_decorations(true)
-            .with_resizable(true)
             .build(event_loop)
             .unwrap();
 
